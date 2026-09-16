@@ -121,13 +121,14 @@ MODEL_OVERRIDE = "deepseek-chat"  # Set to "0" to disable override
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"  # Base URL for DeepSeek API
 
 # 🤖 Agent Model Selection
-AI_MODEL = MODEL_OVERRIDE if MODEL_OVERRIDE != "0" else config.AI_MODEL
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
+AI_MODEL = OLLAMA_MODEL or (MODEL_OVERRIDE if MODEL_OVERRIDE != "0" else config.AI_MODEL)
 
 # Configuration
 COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY")
-BASE_URL = "https://pro-api.coingecko.com/api/v3"
+BASE_URL = "https://api.coingecko.com/api/v3" if not COINGECKO_API_KEY else "https://pro-api.coingecko.com/api/v3"
 RESULTS_DIR = Path("src/data/coingecko_results")
-DELAY_BETWEEN_REQUESTS = 1  # Seconds between API calls
+DELAY_BETWEEN_REQUESTS = 12  # Seconds between API calls (oeffentliche API: Rate-Limit)
 
 # Output files
 TOP_GAINERS_LOSERS_FILE = RESULTS_DIR / "top_gainers_losers.csv"
@@ -165,12 +166,20 @@ class NewOrTopAgent:
     
     def __init__(self):
         self.headers = {
-            "x-cg-pro-api-key": COINGECKO_API_KEY,
             "Content-Type": "application/json"
         }
+        if COINGECKO_API_KEY:
+            self.headers["x-cg-pro-api-key"] = COINGECKO_API_KEY
         
         # Initialize AI client based on model
-        if "deepseek" in AI_MODEL.lower():
+        if OLLAMA_MODEL:
+            # Lokal ueber Ollama (OpenAI-kompatible API), wie in .env vorgesehen
+            self.ai_client = openai.OpenAI(
+                api_key="ollama",
+                base_url=(os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434/v1").replace("/api", "/v1")
+            )
+            print(f"🌙 Using local Ollama model: {OLLAMA_MODEL}")
+        elif "deepseek" in AI_MODEL.lower():
             deepseek_key = os.getenv("DEEPSEEK_KEY")
             if deepseek_key:
                 self.ai_client = openai.OpenAI(
@@ -190,22 +199,35 @@ class NewOrTopAgent:
         """Get only top gainers (positive performers)"""
         try:
             print_spinner("🚀 Fetching top gainers...", ROCKET_SEQUENCE, 'cyan', 'on_blue')
+            # Oeffentlicher Endpunkt statt Pro-API (16.09.2026)
             response = requests.get(
-                f"{BASE_URL}/coins/top_gainers_losers",
+                f"{BASE_URL}/coins/markets",
                 headers=self.headers,
                 params={
                     "vs_currency": "usd",
-                    "sparkline": "false"
+                    "order": "market_cap_desc",
+                    "per_page": "100",
+                    "sparkline": "false",
+                    "price_change_percentage": "24h"
                 }
             )
             
             if response.status_code == 200:
                 data = response.json()
                 
-                # Extract only gainers
-                gainers = pd.DataFrame(data.get('top_gainers', []))
+                # Nur Gewinner, nach 24h-Aenderung sortiert; head(3) wegen
+                # Rate-Limit der oeffentlichen API (Pro-Key hebt es auf)
+                gainers = pd.DataFrame(data)
                 
                 if not gainers.empty:
+                    gainers = gainers[gainers['price_change_percentage_24h_in_currency'] > 0] \
+                        .sort_values('price_change_percentage_24h_in_currency', ascending=False) \
+                        .head(3)
+                    gainers = gainers.rename(columns={
+                        'current_price': 'usd',
+                        'total_volume': 'usd_24h_vol',
+                        'price_change_percentage_24h_in_currency': 'usd_24h_change',
+                    })
                     gainers['type'] = 'gainer'
                     gainers['timestamp'] = datetime.now().isoformat()
                     # Add CoinGecko URL
@@ -236,14 +258,23 @@ class NewOrTopAgent:
         """Get recently added coins"""
         try:
             print_spinner("Scanning for new coins...", MOON_PHASES, 'yellow', 'on_blue')
+            # "Neue Coins" existiert nur in der Pro-API; oeffentlicher Ersatz:
+            # die kleinsten 100 nach Marktkapitalisierung (16.09.2026)
             response = requests.get(
-                f"{BASE_URL}/coins/list/new",
-                headers=self.headers
+                f"{BASE_URL}/coins/markets",
+                headers=self.headers,
+                params={
+                    "vs_currency": "usd",
+                    "order": "market_cap_asc",
+                    "per_page": "100",
+                    "sparkline": "false"
+                }
             )
             
             if response.status_code == 200:
                 data = response.json()
                 df = pd.DataFrame(data)
+                df = df.head(3)
                 df['timestamp'] = datetime.now().isoformat()
                 # Add CoinGecko URL
                 df['coingecko_url'] = df['id'].apply(lambda x: f"https://www.coingecko.com/en/coins/{x}")
@@ -284,6 +315,25 @@ class NewOrTopAgent:
                     "developer_data": False  # No longer needed
                 }
             )
+            
+            if 429 in (response.status_code, ohlcv_response.status_code):
+                time.sleep(15)  # Rate-Limit der oeffentlichen API; einmal neu versuchen
+                ohlcv_response = requests.get(
+                    f"{BASE_URL}/coins/{coin_id}/ohlc",
+                    headers=self.headers,
+                    params={"vs_currency": "usd", "days": "1"}
+                )
+                response = requests.get(
+                    f"{BASE_URL}/coins/{coin_id}",
+                    headers=self.headers,
+                    params={
+                        "localization": False,
+                        "tickers": True,
+                        "market_data": True,
+                        "community_data": True,
+                        "developer_data": False
+                    }
+                )
             
             if response.status_code == 200 and ohlcv_response.status_code == 200:
                 coin_data = response.json()
@@ -366,7 +416,7 @@ class NewOrTopAgent:
             print_fancy("🧠 AI Agent Processing...", 'yellow', 'on_blue', SPINNER_EMOJIS)
             
             # Get AI response
-            if "deepseek" in AI_MODEL.lower():
+            if "deepseek" in AI_MODEL.lower() or OLLAMA_MODEL:
                 response = self.ai_client.chat.completions.create(
                     model=AI_MODEL,
                     messages=[
@@ -513,9 +563,13 @@ class NewOrTopAgent:
             print_fancy("\n🎮 ANALYSIS COMPLETE 🎮", 'white', 'on_green')
             print_fancy("=" * 50, 'blue', 'on_white')
             
-            # Read the full file to get summary
-            results_df = pd.read_csv(AI_PICKS_FILE)
-            summary = results_df['recommendation'].value_counts()
+            # Read the full file to get summary (alte Hand-CSVs koennen
+            # anderes Format haben - dann keine Zusammenfassung statt Absturz)
+            try:
+                results_df = pd.read_csv(AI_PICKS_FILE)
+                summary = results_df['recommendation'].value_counts()
+            except Exception:
+                summary = {}
             
             print_fancy(f"BUY: {summary.get('BUY', 0)} 💰", 'green', 'on_grey')
             print_fancy(f"SELL: {summary.get('SELL', 0)} 📉", 'red', 'on_grey')
