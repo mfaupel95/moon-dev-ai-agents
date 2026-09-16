@@ -5,31 +5,37 @@ Built with love by Moon Dev 🚀
 This module provides integration with locally running Ollama models.
 """
 
+import os
 import requests
 import json
 from termcolor import cprint
 from .base_model import BaseModel
+
+# Max' lokale Modelle (Ollama, 127.0.0.1:11434). Ueber die Umgebung
+# umstellbar, ohne Code zu aendern: OLLAMA_MODEL / OLLAMA_BASE_URL.
+STANDARD_MODELL = "qwen35-8k:latest"
 
 class OllamaModel(BaseModel):
     """Implementation for local Ollama models"""
     
     # Available Ollama models - can be expanded based on what's installed locally
     AVAILABLE_MODELS = [
-        "deepseek-r1",      # DeepSeek R1 through Ollama (7B by default)
-        "gemma:2b",         # Google's Gemma 2B model
-        "llama3.2",         # Meta's Llama 3.2 model - fast and efficient
+        "qwen35-8k:latest",   # Hausstandard: 3,0 GB, passt in die 8 GB VRAM
+        "qwen36-35b-a3b:8k",  # MoE 35B, 22,7 GB - laeuft auf CPU/RAM, viel langsamer
+        "gemma-e4b-8k:latest",  # klein und schnell, im Vertragstest unzuverlaessig
         # implement your own local models through hugging face/ollama here
     ]
     
-    def __init__(self, api_key=None, model_name="llama3.2"):
+    def __init__(self, api_key=None, model_name=None):
         """Initialize Ollama model
         
         Args:
             api_key: Not used for Ollama but kept for compatibility
-            model_name: Name of the Ollama model to use
+            model_name: Name of the Ollama model to use (Standard: OLLAMA_MODEL
+                        aus der Umgebung, sonst STANDARD_MODELL)
         """
-        self.base_url = "http://localhost:11434/api"  # Default Ollama API endpoint
-        self.model_name = model_name
+        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/api")
+        self.model_name = model_name or os.getenv("OLLAMA_MODEL", STANDARD_MODELL)
         # Pass a dummy API key to satisfy BaseModel
         super().__init__(api_key="LOCAL_OLLAMA")
         self.initialize_client()
@@ -140,9 +146,9 @@ class OllamaModel(BaseModel):
         try:
             # For specific known models
             known_models = {
-                "deepseek-r1": "7B",
-                "gemma:2b": "2B",
-                "llama3.2": "70B"
+                "qwen35-8k:latest": "4B (8k Kontext)",
+                "qwen36-35b-a3b:8k": "35B MoE, 3B aktiv",
+                "gemma-e4b-8k:latest": "E4B",
             }
             
             if model_name in known_models:

@@ -39,7 +39,9 @@ class ModelFactory:
         "openai": "gpt-4o",                  # Latest GPT-4 Optimized
         # "gemini": "gemini-2.0-flash",        # Latest Gemini model (temporarily disabled)
         "deepseek": "deepseek-reasoner",     # Enhanced reasoning model
-        "ollama": "llama3.2"                 # Meta's Llama 3.2 - balanced performance
+        # Lokales Ollama (Max, 16.09.2026): Standardmodell aus OLLAMA_MODEL,
+        # sonst der Hausstandard - 'llama3.2' ist hier nicht installiert.
+        "ollama": os.getenv("OLLAMA_MODEL", "qwen35-8k:latest")
     }
     
     def __init__(self):
@@ -175,6 +177,16 @@ class ModelFactory:
                 cprint(f"❌ Model type '{model_type}' not available - check {key_name} in .env", "red")
             else:
                 cprint(f"❌ Model type '{model_type}' not available", "red")
+
+            # Lokaler Ersatz statt Ausfall: ohne bezahlten Schluessel laeuft der
+            # Aufruf lokal weiter, statt None zu liefern und beim ersten Zugriff
+            # zu scheitern. Abschaltbar mit MOONDEV_LOKAL_STATT_FEHLT=false.
+            if os.getenv("MOONDEV_LOKAL_STATT_FEHLT", "true").lower() not in ("0", "false", "nein"):
+                lokal = self._models.get("ollama")
+                if lokal is not None:
+                    cprint(f"↩️  Kein {model_type} - lokal weiter mit "
+                           f"ollama/{lokal.model_name}", "yellow")
+                    return lokal
             return None
             
         model = self._models[model_type]
