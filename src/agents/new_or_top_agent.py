@@ -130,6 +130,28 @@ BASE_URL = "https://api.coingecko.com/api/v3" if not COINGECKO_API_KEY else "htt
 RESULTS_DIR = Path("src/data/coingecko_results")
 DELAY_BETWEEN_REQUESTS = 12  # Seconds between API calls (oeffentliche API: Rate-Limit)
 
+
+def llm_lokal(prompt):
+    """Native Ollama-API (/api/chat, think:false). Der /v1-OpenAI-Weg liefert
+    bei qwen35-8k LEEREN content (Antwort landet im reasoning-Feld), gemessen
+    16.09.2026; /api/chat mit think:false antwortet zuverlaessig."""
+    import json
+    import urllib.request
+    basis = (os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434/api").rstrip("/")
+    if not basis.endswith("/api"):
+        basis += "/api"
+    koerper = json.dumps({
+        "model": OLLAMA_MODEL or AI_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False, "think": False,
+        "options": {"temperature": 0.7, "num_predict": 500},
+    }).encode("utf-8")
+    anfrage = urllib.request.Request(basis + "/chat", data=koerper,
+                                     headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(anfrage, timeout=180) as antwort:
+        daten = json.loads(antwort.read().decode("utf-8", "replace"))
+    return (daten.get("message") or {}).get("content") or ""
+
 # Output files
 TOP_GAINERS_LOSERS_FILE = RESULTS_DIR / "top_gainers_losers.csv"
 NEW_COINS_FILE = RESULTS_DIR / "new_coins.csv"
@@ -417,16 +439,8 @@ class NewOrTopAgent:
             
             # Get AI response
             if "deepseek" in AI_MODEL.lower() or OLLAMA_MODEL:
-                response = self.ai_client.chat.completions.create(
-                    model=AI_MODEL,
-                    messages=[
-                        {"role": "system", "content": "You are a cryptocurrency analyst."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=500,
-                    temperature=0.7
-                )
-                analysis = response.choices[0].message.content
+                # Lokal: native Ollama-API - /v1 liefert leeren content
+                analysis = llm_lokal(prompt)
             else:
                 response = self.ai_client.messages.create(
                     model=AI_MODEL,
