@@ -39,3 +39,24 @@ ta-lib>=0.4.0
 PyPDF2>=3.0.0
 youtube-transcript-api>=0.6.2
 pandas-ta>=0.3.14b0
+
+# Nachgezogen 17.09.2026 - fehlten trotz Import in src/agents/*_agent.py,
+# jedes Modul war deshalb per Doppelklick/MoonDev-GUI sofort abgestuerzt
+# (ModuleNotFoundError beim Start). macOS-only (Quartz, tiktok/code_runner_agent)
+# und die bewusst deaktivierte Gemini-Anbindung (focus_agent, s.o.) bleiben aussen vor.
+mplfinance>=0.12.10b0      # chartanalysis_agent
+selenium>=4.0.0            # chat_agent
+moviepy==1.0.3             # clips_agent - 2.x hat moviepy.editor entfernt, Code nutzt die alte API
+pyautogui>=0.9.54          # code_runner_agent (Windows-Teil)
+solders>=0.29.0            # copybot_agent, funding_agent, liquidation_agent, risk_agent, solana_agent, strategy_agent, trading_agent, whale_agent
+transformers>=5.0.0        # sentiment_agent - Erstimport dauert ~45s (Torch-Backend-Scan), kein Haenger
+elevenlabs>=2.0.0          # shortvid_agent
+rich>=13.0.0               # sniper_agent, solana_agent, tx_agent
+pyaudio>=0.2.14            # stream_agent
+flask>=3.0.0               # phone_agent
+twilio>=9.0.0              # phone_agent
+twikit>=2.3.0              # sentiment_agent
+playsound==1.2.2           # tx_agent - 1.3.x scheitert am Wheel-Build (setuptools findsource)
+sounddevice>=0.5.0         # phone_agent
+langdetect>=1.0.9          # phone_agent
+yt_dlp                     # clips_agent
