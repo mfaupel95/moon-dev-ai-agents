@@ -126,21 +126,51 @@ class TokenScanner:
             print('\r' + ' ' * (width + 20), end='\r', flush=True)
             
     def get_token_addresses(self):
-        """Fetch token data silently"""
+        """Fetch token data silently from the public Pump.fun API.
+
+        Der Original-Endpoint `api.moondev.com:8000/files/new_token_addresses.csv`
+        ist tot (kein Zugriff). Ersatz: die oeffentliche Pump.fun-API liefert
+        die neuesten Launches mit Alter, Marktwert und Liquiditaet - kein
+        Schluessel, kein PRO-Abo. Die Spalten werden auf das erwartete
+        Schema (Token Address / Epoch Time / Time Found / Birdeye Link)
+        abgebildet, damit der Rest des Scanners unveraendert weiterlaeuft.
+        """
         try:
-            url = f'{BASE_URL}/files/new_token_addresses.csv'
-            response = requests.get(url)
+            url = ("https://frontend-api-v3.pump.fun/coins"
+                   "?offset=0&limit=40&sort=created_timestamp&order=DESC")
+            headers = {"User-Agent":
+                       "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            response = requests.get(url, headers=headers, timeout=15)
             response.raise_for_status()
-            
+            coins = response.json()
+
+            rows = []
+            for c in coins:
+                mint = c.get("mint")
+                if not mint:
+                    continue
+                created_ms = c.get("created_timestamp")
+                if created_ms is None:
+                    continue
+                try:
+                    zeit = pd.to_datetime(created_ms, unit="ms")
+                except Exception:                            # noqa: BLE001
+                    zeit = pd.Timestamp.now()
+                rows.append({
+                    "Token Address": mint,
+                    "Epoch Time": created_ms,
+                    "Time Found": zeit.strftime("%Y-%m-%d %H:%M:%S"),
+                    "Birdeye Link":
+                        "https://birdeye.so/token/%s?chain=solana" % mint,
+                })
+            df = pd.DataFrame(rows)
+
             # Save to cache
             save_path = self.base_dir / "new_token_addresses.csv"
-            with open(save_path, 'wb') as f:
-                f.write(response.content)
-            
-            df = pd.read_csv(save_path)
+            df.to_csv(save_path, index=False)
             return df
-                
-        except Exception as e:
+
+        except Exception as e:                               # noqa: BLE001
             return None
         
     def filter_tokens(self, df):
