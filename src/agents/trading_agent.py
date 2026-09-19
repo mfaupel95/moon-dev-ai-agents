@@ -118,6 +118,115 @@ def _freigabe_erlaubt():
         return False
 
 
+def _indikatoren(kerzen):
+    """MA20/MA40/RSI/Volumen-Trend aus Close-Kerzen (deterministisch).
+
+    Kerzen aufsteigend (aelteste zuerst). Liefert ein kompaktes dict, das
+    ins Modell geht - nicht die rohen Kerzen (Kontextgrenze qwen35-8k).
+    """
+    if not kerzen:
+        return {}
+    try:
+        schluesse = [float(k.get("c") or k.get("close")) for k in kerzen]
+    except (TypeError, ValueError):
+        return {}
+    def mittelwerte(n):
+        if len(schluesse) < n:
+            return None
+        return sum(schluesse[-n:]) / n
+    ma20 = mittelwerte(20)
+    ma40 = mittelwerte(40)
+    kurs = schluesse[-1]
+    hoch = max(schluesse[-24:]) if len(schluesse) >= 2 else kurs
+    tief = min(schluesse[-24:]) if len(schluesse) >= 2 else kurs
+    # Wilder-MA-RSI(14) ueber die letzten 15 Kurse (naeherungsweise)
+    rsi = None
+    if len(schluesse) >= 15:
+        gewinne = verluste = 0.0
+        for i in range(len(schluesse) - 14, len(schluesse)):
+            diff = schluesse[i] - schluesse[i - 1]
+            if diff > 0:
+                gewinne += diff
+            elif diff < 0:
+                verluste += -diff
+        if gewinne + verluste > 0:
+            rsi = 100 - (100 / (1 + (gewinne / verluste)))
+    volumen = [float(k.get("v") or k.get("volume") or 0) for k in kerzen]
+    vol_summe = sum(volumen)
+    vol_mitte = sum(volumen[-6:]) / max(len(volumen[-6:]), 1)
+    vol_frueh = sum(volumen[:6]) / max(len(volumen[:6]), 1)
+    trend_vol = (vol_mitte / vol_frueh - 1) if vol_frueh else None
+    return {
+        "kurs": kurs,
+        "ma20": ma20, "ma40": ma40,
+        "24h_hoch": hoch, "24h_tief": tief,
+        "rsi14": round(rsi, 1) if rsi is not None else None,
+        "kurs_zu_ma20": (kurs / ma20 - 1) if ma20 else None,
+        "kurs_zu_ma40": (kurs / ma40 - 1) if ma40 else None,
+        "volumen_trend_6zu6": round(trend_vol, 3) if trend_vol is not None else None,
+        "volumen_summe": vol_summe,
+        "kerzen_anzahl": len(schluesse),
+    }
+
+
+def _papier_marktdaten(anzahl_kerzen=48, zeitgrenze=30):
+    """Marktdaten ohne Birdeye: MONITORED_TOKENS mit echten 1h-Kerzen.
+
+    Die oeffentliche swap-api.pump.fun/v2/coins/<mint>/candles liefert echte
+    OHLCV-Kerzen (open/high/low/close/volume) - daraus kann das Modell
+    MA/RSI/Volume ableiten. Holen fuer jeden MONITORED_TOKEN (config);
+    Tokens ohne Kerzen (tot, z. B. AI16Z/GG) werden uebersprungen. Kein
+    Schluessel, keine Orders - nur Daten fuer den Papier-Analysis-Prompt.
+    Analyse und Allocation sehen damit dieselben Tokens.
+    """
+    import time as _zeit
+    aus = {}
+    for mint in MONITORED_TOKENS:
+        mint = (mint or "").strip()
+        if (not mint) or mint == USDC_ADDRESS:
+            continue
+        try:
+            kerzen_url = ("https://swap-api.pump.fun/v2/coins/%s/candles"
+                          "?interval=1h&createdTs=%d"
+                          % (mint, int(_zeit.time() * 1000)))
+            anfrage = urllib.request.Request(
+                kerzen_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(anfrage, timeout=zeitgrenze) as antwort:
+                kerzen = json.loads(antwort.read().decode("utf-8", "replace"))
+        except Exception:                                     # noqa: BLE001
+            continue
+        if not (isinstance(kerzen, list) and kerzen):
+            continue                                    # Token ohne Historie
+        kerzen = list(kerzen)[-anzahl_kerzen:]
+        symbol = "?"
+        try:
+            meta_url = ("https://frontend-api-v3.pump.fun/coins/"
+                        "%s?details=true" % mint)
+            manfrage = urllib.request.Request(
+                meta_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(manfrage, timeout=zeitgrenze) as mantwort:
+                meta = json.loads(mantwort.read().decode("utf-8", "replace"))
+            d = meta.get(mint) or meta
+            symbol = d.get("symbol") or "?"
+            aus[mint] = {
+                "symbol": symbol,
+                "name": d.get("name") or "?",
+                "marktwert_usd": d.get("market_cap_usd"),
+                "alter_min": d.get("age"),
+            }
+        except Exception:                                     # noqa: BLE001
+            aus[mint] = {"symbol": symbol, "name": "?", "marktwert_usd": None}
+        # Kerzen aufsteigend (aelteste zuerst) wie collect_token_data.
+        kerzen = list(reversed(kerzen))
+        aus[mint]["indikatoren"] = _indikatoren(kerzen)
+        aus[mint]["ohlcv_letzte8"] = [{
+            "o": k.get("open"), "h": k.get("high"),
+            "l": k.get("low"), "c": k.get("close"),
+            "v": k.get("volume"),
+        } for k in kerzen[-8:]]
+    return aus
+
+
 class TradingAgent:
     def __init__(self):
         # Native Ollama-API (kein ANTHROPIC_KEY noetig). WICHTIG: der /v1-
@@ -465,15 +574,26 @@ Example format:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             cprint(f"\n⏰ AI Agent Run Starting at {current_time}", "white", "on_green")
             
-            # Collect OHLCV data for all tokens (Papier: ohne Birdeye leer)
+            # Collect OHLCV data (Birdeye) oder Papier-Ersatz (Pump.fun)
             cprint("📊 Collecting market data...", "white", "on_blue")
             _lade_birdeye()
-            try:
-                market_data = collect_all_tokens() if collect_all_tokens else {}
-            except Exception:                                # noqa: BLE001
-                cprint("⚠️ Keine Marktdaten (Birdeye fehlt) - Papier ohne Signale",
-                       "white", "on_yellow")
-                market_data = {}
+            market_data = {}
+            if PAPIER or not _freigabe_erlaubt():
+                # Papier: oeffentliche Pump.fun-Daten statt Birdeye.
+                try:
+                    market_data = _papier_marktdaten()
+                    cprint(f"📊 Papier-Marktdaten: {len(market_data)} Launches "
+                           f"(Pump.fun)", "white", "on_blue")
+                except Exception:                            # noqa: BLE001
+                    cprint("⚠️ Papier-Marktdaten fehlen (Pump.fun nicht erreichbar)",
+                           "white", "on_yellow")
+            else:
+                try:
+                    market_data = collect_all_tokens() if collect_all_tokens else {}
+                except Exception:                            # noqa: BLE001
+                    cprint("⚠️ Keine Marktdaten (Birdeye fehlt)",
+                           "white", "on_yellow")
+                    market_data = {}
             
             # Analyze each token's data
             for token, data in market_data.items():
