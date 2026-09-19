@@ -11,16 +11,16 @@ SOL_ADDRESS = "So11111111111111111111111111111111111111111"   # Never trade or c
 EXCLUDED_TOKENS = [USDC_ADDRESS, SOL_ADDRESS]
 
 # Token List for Trading 📋
+# Aktualisiert 19.09.2026: tote Tokens (AI16Z/GG, 0 Kerzen) ersetzt durch
+# aktive, liquide Pump.fun-Tokens mit echter OHLCV-Historie (gemessen via
+# swap-api/public v2/coins/<mint>/candles). FART bleibt (lebendig). Keine
+# echten Orders moeglich - Papier-Freigabe (handel_erlaubt=false).
 MONITORED_TOKENS = [
     '9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump',    # 🌬️ FART
-    # 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',    # 💵 USDC
-    'HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC',    # 🤖 AI16Z
-    # 'v62Jv9pwMTREWV9f6TetZfMafV254vo99p7HSF25BPr',     # 🎮 GG Solana
-    # 'KENJSUYLASHUMfHyy5o4Hp2FdNqZg1AsUPhfH2kYvEP',   # GRIFFAIN
-    # '8x5VqbHA8D7NkD52uNuS5nnt3PwA3pLD34ymskeSo2Wn',    # 🧠 ZEREBRO
-    # 'Df6yfrKC8kZE3KNkrHERKzAetSxbrWeniQfyJY4Jpump',    # 😎 CHILL GUY
-    # 'ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY',    # 🌙 MOODENG
-    # 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',    # 🐕 WIF
+    'QbPr1ponxN4J7ozvkdh1dNzqc4zgdkE1RGygHeKpump',     # FAIR
+    'RxYD33iqsGfmzm2mdHjiiXs6T43VV8FPCdwbaNppump',     # TNT
+    '3P6WB3hifQ9Z38Ja5qNuaETkgstJUWmP6vf58aYupump',    # CIGR
+    'Eg2ymQ2aQqjMcibnmTt8erC6Tvk9PVpJZCxvVPJz2agu',    # PUMPCADE
 ]
 
 # Moon Dev's Token Trading List 🚀

@@ -181,6 +181,22 @@ def _papier_marktdaten(anzahl_kerzen=48, zeitgrenze=30):
     """
     import time as _zeit
     aus = {}
+    # Symbol-Map aus der coins-Liste (der Einzel-Meta-Endpoint ist 404).
+    symbol_map = {}
+    try:
+        list_url = ("https://frontend-api-v3.pump.fun/coins"
+                    "?offset=0&limit=200&sort=market_cap&order=DESC")
+        lanfrage = urllib.request.Request(
+            list_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(lanfrage, timeout=zeitgrenze) as lantwort:
+            ldata = json.loads(lantwort.read().decode("utf-8", "replace"))
+        lcs = ldata if isinstance(ldata, list) else (ldata.get("coins") or [])
+        for lc in lcs:
+            lm = (lc.get("mint") or "").strip()
+            if lm:
+                symbol_map[lm] = lc.get("symbol") or "?"
+    except Exception:                                          # noqa: BLE001
+        pass
     for mint in MONITORED_TOKENS:
         mint = (mint or "").strip()
         if (not mint) or mint == USDC_ADDRESS:
@@ -198,24 +214,8 @@ def _papier_marktdaten(anzahl_kerzen=48, zeitgrenze=30):
         if not (isinstance(kerzen, list) and kerzen):
             continue                                    # Token ohne Historie
         kerzen = list(kerzen)[-anzahl_kerzen:]
-        symbol = "?"
-        try:
-            meta_url = ("https://frontend-api-v3.pump.fun/coins/"
-                        "%s?details=true" % mint)
-            manfrage = urllib.request.Request(
-                meta_url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(manfrage, timeout=zeitgrenze) as mantwort:
-                meta = json.loads(mantwort.read().decode("utf-8", "replace"))
-            d = meta.get(mint) or meta
-            symbol = d.get("symbol") or "?"
-            aus[mint] = {
-                "symbol": symbol,
-                "name": d.get("name") or "?",
-                "marktwert_usd": d.get("market_cap_usd"),
-                "alter_min": d.get("age"),
-            }
-        except Exception:                                     # noqa: BLE001
-            aus[mint] = {"symbol": symbol, "name": "?", "marktwert_usd": None}
+        symbol = symbol_map.get(mint, "?")
+        aus[mint] = {"symbol": symbol, "name": "?", "marktwert_usd": None}
         # Kerzen aufsteigend (aelteste zuerst) wie collect_token_data.
         kerzen = list(reversed(kerzen))
         aus[mint]["indikatoren"] = _indikatoren(kerzen)
