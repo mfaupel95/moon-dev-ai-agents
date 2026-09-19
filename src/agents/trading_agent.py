@@ -257,6 +257,45 @@ class TradingAgent:
         inhalt = (roh.get("message") or {}).get("content") or ""
         return inhalt.strip() or "NOTHING"
 
+    def _exportiere_csv(self) -> None:
+        """Empfehlungen des Zyklus als CSV in den Haus-Ordner schreiben."""
+        try:
+            haus = os.getenv("MOONDEV_HAUS_DIR")
+            if not haus:
+                # Fallback: Agenten/Handel relativ zum Repo-Overlay
+                haus = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__))))),
+                    "Agenten", "Handel")
+            import datetime as _dt
+            zeit = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            pfad = os.path.join(haus, "moondev_trading_empfehlungen.csv")
+            zeilen = []
+            if self.recommendations_df is not None and len(self.recommendations_df):
+                for _, r in self.recommendations_df.iterrows():
+                    zeilen.append({
+                        "zeit": zeit,
+                        "token": r.get("token", ""),
+                        "aktion": r.get("action", ""),
+                        "confidence": r.get("confidence", ""),
+                        "begruendung": (r.get("reasoning") or "").replace("\n", " ").strip(),
+                    })
+            else:
+                zeilen.append({"zeit": zeit, "token": "", "aktion": "NOTHING",
+                               "confidence": "", "begruendung": "keine Empfehlungen"})
+            import csv as _csv
+            mit = "a" if os.path.exists(pfad) else "w"
+            felder = ["zeit", "token", "aktion", "confidence", "begruendung"]
+            with open(pfad, mit, newline="", encoding="utf-8") as f:
+                w = _csv.DictWriter(f, fieldnames=felder)
+                if mit == "w":
+                    w.writeheader()
+                for z in zeilen:
+                    w.writerow(z)
+            print(f"\n💾 Empfehlungen exportiert: {pfad} ({len(zeilen)} Zeilen)")
+        except Exception as e:                                     # noqa: BLE001
+            print(f"⚠️ CSV-Export fehlgeschlagen: {e}")
+
     def analyze_market_data(self, token, market_data):
         """Analyze market data using Claude"""
         try:
@@ -613,6 +652,7 @@ Example format:
             cprint("\n📊 Moon Dev's Trading Recommendations:", "white", "on_blue")
             summary_df = self.recommendations_df[['token', 'action', 'confidence']].copy()
             print(summary_df.to_string(index=False))
+            self._exportiere_csv()
             
             # Handle exits first
             self.handle_exits()
