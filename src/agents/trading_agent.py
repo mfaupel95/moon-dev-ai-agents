@@ -62,6 +62,7 @@ import anthropic
 import os
 import pandas as pd
 import json
+import urllib.request
 from termcolor import colored, cprint
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -69,17 +70,83 @@ import time
 
 # Local imports
 from src.config import *
-from src import nice_funcs as n
-from src.data.ohlcv_collector import collect_all_tokens
+
+# Haus-Erweiterung (19.09.2026): nice_funcs verlangt BIRDEYE_API_KEY beim
+# Import und ohlcv_collector zieht Birdeye-Daten. Der Papier-Modus braucht
+# beides nicht. Lazy importieren (nur bei Live-Freigabe) und bei fehlendem
+# Key einen Papier-Ersatz verwenden.
+n = None
+collect_all_tokens = None
+
+def _lade_birdeye():
+    """Importiert nice_funcs/ohlcv_collector; None, wenn nicht verfuegbar."""
+    global n, collect_all_tokens
+    if n is not None:
+        return n, collect_all_tokens
+    try:
+        from src import nice_funcs as _n
+        from src.data.ohlcv_collector import collect_all_tokens as _c
+        n = _n
+        collect_all_tokens = _c
+    except Exception:                                        # noqa: BLE001
+        n = None
+        collect_all_tokens = None
+    return n, collect_all_tokens
 
 # Load environment variables
 load_dotenv()
 
+# Haus-Erweiterung (19.09.2026): Papier-Modus + Freigabesperre.
+#   - PAPIER=True (Vorgabe): execute_allocations/handle_exits protokollieren
+#     nur, es wird NICHTS gekauft oder verkauft.
+#   - Freigabesperre: Agenten/Handel/moondev_trading_freigabe.json mit
+#     {"handel_erlaubt": true} schaltet den Live-Weg frei. Ohne die Datei oder
+#     bei false bleibt der Agent im Papier-Modus. Die Datei liegt im Haus, der
+#     Repo-Klon traegt keine Freigabe.
+PAPIER = True
+
+def _freigabe_erlaubt():
+    """True, wenn die Haus-Freigabedatei handel_erlaubt=true sagt."""
+    try:
+        pfad = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__)))),
+            "Agenten", "Handel", "moondev_trading_freigabe.json")
+        with open(pfad, encoding="utf-8") as f:
+            return bool(json.load(f).get("handel_erlaubt", False))
+    except Exception:                                        # noqa: BLE001
+        return False
+
+
 class TradingAgent:
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_KEY"))
+        # Native Ollama-API (kein ANTHROPIC_KEY noetig). WICHTIG: der /v1-
+        # OpenAI-Adapter ignoriert "think": false, qwen35 liefert dann einen
+        # LEEREN content. Deshalb direkt POST an /api/chat mit think:false
+        # (Haus-Muster llm_lokal.py, gemessen 19.09.2026).
+        self.ollama_url = (os.getenv("OLLAMA_BASE_URL") or
+                           "http://127.0.0.1:11434/api/chat").replace("/v1", "/api/chat")
+        self.modell = os.getenv("OLLAMA_MODEL") or "qwen35-8k:latest"
         self.recommendations_df = pd.DataFrame(columns=['token', 'action', 'confidence', 'reasoning'])
-        print("🤖 Moon Dev's LLM Trading Agent initialized!")
+        print("🤖 Moon Dev's LLM Trading Agent initialized! (Papier=%s, Modell=%s)"
+              % (PAPIER, self.modell))
+
+    def _chat_ollama(self, messages, max_tokens, temperature):
+        """Ein nativer /api/chat-Aufruf; liefert den content-String (nie leer)."""
+        koerper = json.dumps({
+            "model": self.modell,
+            "messages": messages,
+            "stream": False,
+            "think": False,
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+        }).encode("utf-8")
+        anfrage = urllib.request.Request(
+            self.ollama_url, data=koerper,
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(anfrage, timeout=300) as antwort:
+            roh = json.loads(antwort.read().decode("utf-8", "replace"))
+        inhalt = (roh.get("message") or {}).get("content") or ""
+        return inhalt.strip() or "NOTHING"
 
     def analyze_market_data(self, token, market_data):
         """Analyze market data using Claude"""
@@ -99,8 +166,7 @@ Strategy Signals Available:
             else:
                 strategy_context = "No strategy signals available."
             
-            message = self.client.messages.create(
-                model=AI_MODEL,
+            message = self._chat_ollama(
                 max_tokens=AI_MAX_TOKENS,
                 temperature=AI_TEMPERATURE,
                 messages=[
@@ -112,7 +178,7 @@ Strategy Signals Available:
             )
             
             # Parse the response - handle both string and list responses
-            response = message.content
+            response = message
             if isinstance(response, list):
                 # Extract text from TextBlock objects if present
                 response = '\n'.join([
@@ -170,8 +236,7 @@ Strategy Signals Available:
             cprint(f"🎯 Maximum position size: ${max_position_size:.2f} ({MAX_POSITION_PERCENTAGE}% of ${usd_size:.2f})", "cyan")
             
             # Get allocation from AI
-            message = self.client.messages.create(
-                model=AI_MODEL,
+            message = self._chat_ollama(
                 max_tokens=AI_MAX_TOKENS,
                 temperature=AI_TEMPERATURE,
                 messages=[{
@@ -200,7 +265,7 @@ Example format:
             )
             
             # Parse the response
-            allocations = self.parse_allocation_response(str(message.content))
+            allocations = self.parse_allocation_response(message)
             if not allocations:
                 return None
                 
@@ -239,7 +304,15 @@ Example format:
                     continue
                     
                 print(f"\n🎯 Processing allocation for {token}...")
-                
+
+                # Haus-Sperre (19.09.2026): ohne Freigabe nicht kaufen. Steht
+                # VOR dem n-Zugriff - n ist None ohne Birdeye, die
+                # Balance-Abfrage wuerde sonst crashen, bevor die Sperre greift.
+                if PAPIER or not _freigabe_erlaubt():
+                    print(f"📝 PAPIER: wuerde {token} fuer ${amount:.2f} kaufen "
+                          f"(Freigabe fehlt)")
+                    continue
+
                 try:
                     # Get current position value
                     current_position = n.get_token_balance_usd(token)
@@ -277,6 +350,13 @@ Example format:
                 
             action = row['action']
             
+            # Haus-Sperre (19.09.2026): ohne Freigabe nicht schliessen. Steht
+            # VOR dem n-Zugriff - n ist None ohne Birdeye.
+            if PAPIER or not _freigabe_erlaubt():
+                cprint(f"📝 PAPIER: wuerde {token} schliessen (Freigabe fehlt)",
+                       "white", "on_yellow")
+                continue
+
             # Check if we have a position
             current_position = n.get_token_balance_usd(token)
             
@@ -385,9 +465,15 @@ Example format:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             cprint(f"\n⏰ AI Agent Run Starting at {current_time}", "white", "on_green")
             
-            # Collect OHLCV data for all tokens
+            # Collect OHLCV data for all tokens (Papier: ohne Birdeye leer)
             cprint("📊 Collecting market data...", "white", "on_blue")
-            market_data = collect_all_tokens()
+            _lade_birdeye()
+            try:
+                market_data = collect_all_tokens() if collect_all_tokens else {}
+            except Exception:                                # noqa: BLE001
+                cprint("⚠️ Keine Marktdaten (Birdeye fehlt) - Papier ohne Signale",
+                       "white", "on_yellow")
+                market_data = {}
             
             # Analyze each token's data
             for token, data in market_data.items():
