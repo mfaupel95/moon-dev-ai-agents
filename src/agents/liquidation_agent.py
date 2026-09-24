@@ -18,7 +18,11 @@ import anthropic
 from pathlib import Path
 from src import nice_funcs as n
 from src import nice_funcs_hl as hl
-from src.agents.api import MoonDevAPI
+# Freie Quellen statt api.moondev.com (tot, gemessen 24.09.2026):
+# gleiche Klasse, gleiche Spalten, Daten von Binance/OKX.
+# Rueckweg: diese Zeile wieder auf "from src.agents.api import ..."
+# zurueckstellen, sobald der MoonDev-Host antwortet.
+from src.agents.api_frei import MoonDevAPI
 from collections import deque
 from src.agents.base_agent import BaseAgent
 import traceback
