@@ -1,0 +1,30 @@
+STRATEGY_NAME: CompressiveBreakout
+
+STRATEGY_DETAILS:
+STRATEGY_DETAILS:
+STRATEGY_DETAILS:
+
+**Key Strategy Components**
+*   **Volatility Squeeze Detection:** The core logic relies on identifying periods of low market volatility where Bollinger Bands contract. This "compressive" state precedes significant price movement.
+*   **Bollinger Band Breakout:** Uses the standard Bollinger Band structure to determine when the compression releases into a breakout.
+*   **Directional Bias:** The strategy is specifically designed for a shorting position, assuming that a breakout from a low volatility state will result in a downward price movement (or that the breakout itself signals a reversal against the previous consolidation).
+
+**Entry Rules**
+1.  **Volatility Check:** Confirm that the current Bollinger Band width is below its recent average (indicating a "squeeze" or compression).
+2.  **Breakout Trigger:** Wait for the price action to move decisively outside the current Bollinger Bands (specifically breaking the lower band).
+3.  **Execution:** Immediately open a **Short** position upon the confirmed breakout of the lower band.
+
+**Exit Rules**
+1.  **Volatility Expansion:** The primary exit signal is when the Bollinger Bands begin to expand significantly after the breakout.
+2.  **Resistance Hit:** Specifically monitor for the price to touch or cross the **Upper Bollinger Band** while the bands are expanding.
+3.  **Closing:** Close the short position when the bands expand to the upper band level or when the reversal condition is met (price hitting upper band resistance).
+
+**Risk Management**
+*   **Stop Loss:** Since the strategy is shorting, place a Stop Loss just above the breakout level or above the initial Upper Band. This protects against a false breakout where price rallies back up.
+*   **Position Sizing:** Risk only a small percentage of capital per trade, as Bollinger Band breakouts can sometimes result in false signals during low liquidity periods.
+*   **Take Profit:** The strategy aims to capture the volatility expansion. If the trade does not reach the upper band expansion before the stop loss, consider scaling out or exiting early.
+
+**Required Indicators**
+*   **Bollinger Bands:** Standard settings (Period: 20, Standard Deviation: 2).
+*   **Volatility Measurement:** Use the band width (Upper Band - Lower Band) to calculate the compression state.
+*   **Price Action:** Candlestick confirmation for the breakout (e.g., closing below the lower band).

@@ -37,11 +37,11 @@ PAST_TOKENS_TO_SHOW = 40  # Number of past token launches to display
 CHECK_INTERVAL = 10  # Seconds between each check for new launches
 DISPLAY_DELAY = 0.5  # Seconds between displaying each token
 ANIMATION_DURATION = 10  # Seconds to show attention-grabbing animation
-AUTO_OPEN_BROWSER = True  # Set to True to automatically open new tokens in browser
+AUTO_OPEN_BROWSER = False  # Dauerlaeufer im Hintergrund: keine Browser oeffnen
 USE_DEXSCREENER = True  # Set to True to use DexScreener instead of Birdeye
 EXCLUDE_PATTERNS = ['So11111111111111111111111111111111111111112']  # Exclude the SOLE token pattern
 BASE_URL = "http://api.moondev.com:8000"
-SOUND_ENABLED = True  # Set to True to enable sound effects, False to disable them
+SOUND_ENABLED = False  # Dauerlaeufer im Hintergrund: kein Sound
 DATA_FOLDER = Path(__file__).parent.parent / "data" / "sniper_agent"  # Folder for token data
 
 # Animation sequences

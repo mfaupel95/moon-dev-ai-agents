@@ -1,0 +1,35 @@
+STRATEGY_NAME: VolatileBreakout
+
+STRATEGY_DETAILS:
+
+**STRATEGY OVERVIEW:**
+The **VolatileBreakout** strategy is designed to capture explosive price movements triggered by significant shifts in market volatility. Unlike standard breakout strategies that may trade in low-volatility consolidation, this approach specifically filters for sessions where volatility expands rapidly (e.g., pre-earnings, economic data releases, or liquidity-heavy periods). It focuses on high-probability entries where volume and volatility metrics confirm the breakout's strength, minimizing the risk of false signals common in choppy markets.
+
+**1. Key Strategy Components:**
+*   **Volatility Filter:** The core mechanism involves measuring market volatility to identify periods of expansion. This ensures trades are only taken when the market has the energy to move price significantly.
+*   **Breakout Confirmation:** Standard breakout levels are used, but they are not triggered by price alone; they require confirmation from volume spikes and volatility metrics.
+*   **Trend Alignment:** Breakouts must occur in alignment with the broader timeframe trend (e.g., daily or weekly) to increase success probability.
+*   **Time-Based Entry:** Entries are prioritized during specific hours of the trading day (e.g., London Open or US Open) when volatility is historically highest.
+
+**2. Entry/Exit Rules:**
+*   **Entry Condition:**
+    *   Price closes above a defined breakout level (e.g., previous high, Bollinger Band upper, or VWAP).
+    *   Volume must exceed the average volume by at least 150% (Volatility-Volume Confluence).
+    *   ATR (Average True Range) must show a significant increase (e.g., >20% from the previous 20-period average) confirming volatility expansion.
+*   **Exit Conditions:**
+    *   **Profit Taking:** Use a trailing stop based on the ATR (e.g., 1.5x ATR) to lock in gains as volatility sustains.
+    *   **Stop Loss:** Placed below the breakout structure or using a fixed percentage risk (e.g., 1R) to protect against fake-outs.
+    *   **Time Stop:** Exit if the trade does not move in the expected direction within a specific timeframe (e.g., 4 hours for daily scalps).
+
+**3. Risk Management:**
+*   **Position Sizing:** Capital allocation is adjusted dynamically based on volatility. Higher volatility requires smaller position sizes (inverse ATR sizing).
+*   **Risk per Trade:** Fixed at 1% to 2% of account equity per trade.
+*   **Volatility Stop:** If volatility drops suddenly after a breakout (indicating a trap), the trade is exited immediately.
+*   **No Overtrading:** Limits the number of trades per day to prevent overexposure during high-uncertainty periods.
+
+**4. Required Indicators:**
+*   **Average True Range (ATR):** To measure volatility expansion and set dynamic stop losses.
+*   **Volume Profile / VWAP:** To confirm price activity and institutional support levels.
+*   **Bollinger Bands:** To identify volatility expansion and breakout levels.
+*   **Moving Averages (EMA 20/50):** To determine the primary trend direction.
+*   **Volume Indicator:** To ensure volume spikes confirm the breakout move.

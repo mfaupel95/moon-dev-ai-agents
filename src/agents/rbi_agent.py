@@ -61,86 +61,28 @@ Remember: Past performance doesn't guarantee future results!
 #     "name": "deepseek-chat"  # Using DeepSeek Chat for package optimization
 # }
 
-# New OpenAI presets using GPT-5 for all agents 🌙🚀
+# Lokale Ollama-Modelle (Max, 16.09.2026): alle vier RBI-Stufen laufen
+# jetzt auf qwen35-8k via 127.0.0.1:11434 - kein OpenAI/DeepSeek-Key noetig.
+# Umstellung je Stufe ueber OLLAMA_MODEL/OLLAMA_BASE_URL aus der Umgebung.
 RESEARCH_CONFIG = {
-    "type": "openai",
-    "name": "gpt-5"
+    "type": "ollama",
+    "name": "qwen35-8k:latest"
 }
 
 BACKTEST_CONFIG = {
-    "type": "openai",
-    "name": "gpt-5"
+    "type": "ollama",
+    "name": "qwen35-8k:latest"
 }
 
 DEBUG_CONFIG = {
-    "type": "openai",
-    "name": "gpt-5"
+    "type": "ollama",
+    "name": "qwen35-8k:latest"
 }
 
 PACKAGE_CONFIG = {
-    "type": "openai",
-    "name": "gpt-5"
+    "type": "ollama",
+    "name": "qwen35-8k:latest"
 }
-
-
-
-################
-
-# Model Configuration
-# Using a mix of Ollama models and DeepSeek API
-# RESEARCH_CONFIG = {
-#     "type": "ollama",
-#     "name": "llama3.2"  # Using Llama 3.2 for research
-# }
-
-# RESEARCH_CONFIG = {
-#     "type": "deepseek",
-#     "name": "deepseek-chat"  # Using Llama 3.2 for research
-# }
-
-# BACKTEST_CONFIG = {
-#     "type": "openai", 
-#     "name": "o3"  # Using O3-mini for backtesting
-# }
-
-# DEBUG_CONFIG = {
-#     "type": "openai",
-#     "name": "o3"  # Using GPT-4.1 for debugging
-# }
-
-# # DEBUG_CONFIG = {
-# #     "type": "ollama",
-# #     "name": "deepseek-r1"  # Using Ollama's DeepSeek-R1 for debugging
-# # }
-
-# # PACKAGE_CONFIG = {
-# #     "type": "deepseek",
-# #     "name": "deepseek-chat"  # Using Llama 3.2 for package optimization
-# # }
-
-# PACKAGE_CONFIG = {
-#     "type": "openai",
-#     "name": "o3"  # Using Llama 3.2 for package optimization
-# }
-
-
-# PACKAGE_CONFIG = {
-#     "type": "ollama",
-#     "name": "llama3.2"  # Using Llama 3.2 for package optimization
-# }
-
-
-# DeepSeek Model Selection per AI
-# "gemma:2b",     # Google's Gemma 2B model
-#         "llama3.2",
-# Using a mix of models for different tasks
-# RESEARCH_MODEL = "llama3.2"           # Llama 3.2 for research
-# BACKTEST_MODEL = "deepseek-reasoner"  # DeepSeek API for backtesting
-# DEBUG_MODEL = "deepseek-r1"           # Ollama DeepSeek-R1 for debugging
-# PACKAGE_MODEL = "llama3.2"            # Llama 3.2 for package optimization
-
-# AI Prompts
-
 RESEARCH_PROMPT = """
 You are Moon Dev's Research AI 🌙
 
@@ -388,7 +330,7 @@ def init_deepseek_client():
         
         client = openai.OpenAI(
             api_key=deepseek_key,
-            base_url=DEEPSEEK_BASE_URL
+            base_url=os.getenv("DEEPSEEK_BASE_URL") or DEEPSEEK_BASE_URL
         )
         
         print("✅ DeepSeek client initialized successfully!")
@@ -991,21 +933,29 @@ def main():
     # Optional: limit number of ideas via env var (for quick debugging)
     max_ideas_env = os.getenv("RBI_MAX_IDEAS")
     max_ideas = int(max_ideas_env) if max_ideas_env and max_ideas_env.isdigit() else None
+    
+    # BATCH PROCESSING FIX: Process ideas in small batches to prevent memory overflow
+    # Default batch size is 20 ideas per session. Adjust via RBI_BATCH_SIZE env var.
+    batch_size_env = os.getenv("RBI_BATCH_SIZE")
+    batch_size = int(batch_size_env) if batch_size_env and batch_size_env.isdigit() else 20
+    
+    cprint(f"[INFO] Processing ideas in batches of {batch_size} to manage memory", "cyan")
+    
     processed_count = 0
 
     for i, idea in enumerate(ideas, 1):
         # Check if this idea has already been processed
         if is_idea_processed(idea):
             cprint(f"\n{'='*50}", "red")
-            cprint(f"⏭️  SKIPPING idea {i}/{total_ideas} - ALREADY PROCESSED", "red", attrs=['reverse'])
+            cprint(f"[SKIP] idea {i}/{total_ideas} - ALREADY PROCESSED", "red", attrs=['reverse'])
             idea_snippet = idea[:100] + ('...' if len(idea) > 100 else '')
-            cprint(f"📝 Idea: {idea_snippet}", "red")
+            cprint(f"[INFO] {idea_snippet}", "red")
             cprint(f"{'='*50}\n", "red")
             continue
             
         cprint(f"\n{'='*50}", "yellow")
-        cprint(f"🌙 Processing idea {i}/{total_ideas}", "cyan")
-        cprint(f"📝 Idea content: {idea[:100]}{'...' if len(idea) > 100 else ''}", "yellow")
+        cprint(f"[PROCESS] idea {i}/{total_ideas}", "cyan")
+        cprint(f"[IDEA] {idea[:100]}{'...' if len(idea) > 100 else ''}", "yellow")
         cprint(f"{'='*50}\n", "yellow")
         
         try:
@@ -1014,16 +964,24 @@ def main():
             
             # Clear separator between ideas
             cprint(f"\n{'='*50}", "green")
-            cprint(f"✅ Completed idea {i}/{total_ideas}", "green")
+            cprint(f"[OK] Completed idea {i}/{total_ideas}", "green")
             cprint(f"{'='*50}\n", "green")
             
             # Break between ideas
             if i < total_ideas:
-                cprint("😴 Taking a break before next idea...", "yellow")
+                cprint("[WAIT] Taking a break before next idea...", "yellow")
                 time.sleep(5)
             processed_count += 1
+            
+            # BATCH PROCESSING: After processing batch_size ideas, restart agent to free memory
+            if processed_count % batch_size == 0:
+                cprint(f"\n[BATCH] Completed {processed_count} ideas. Restarting agent to free memory...", "magenta", attrs=['bold'])
+                cprint(f"[BATCH] If running again, pass --continue to resume from last idea.", "magenta")
+                time.sleep(10)  # Give user time to see message
+                # In production, could exit here and let external script restart: sys.exit(0)
+            
             if max_ideas and processed_count >= max_ideas:
-                cprint("🛑 Reached RBI_MAX_IDEAS limit, exiting after quick debug run.", "yellow")
+                cprint("[LIMIT] Reached RBI_MAX_IDEAS limit, exiting after quick debug run.", "yellow")
                 break
                 
         except Exception as e:

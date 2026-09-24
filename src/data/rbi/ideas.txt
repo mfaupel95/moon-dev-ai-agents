@@ -4479,3 +4479,4 @@ Trade breakouts from Bollinger-Keltner squeeze zones confirmed by volume spikes 
 Trade volatility contractions using Bollinger Band width percentile below 10% combined with ADX below 20, entering on breakout candle closes with 2x average volume and exiting at opposite band touch.
 Trade volatility compression breakouts using a confluence of narrowing Bollinger Bands width percentile (10-day) and suppressed Chaikin Money Flow, entering on volume-confirmed price exits beyond the bands with trailing stops based on Renko brick reversals.
 A breakout strategy that triggers when price crosses both a 20-period Donchian Channel and a 3x average true range threshold, with exits based on parabolic SAR reversals.
+test all strategies

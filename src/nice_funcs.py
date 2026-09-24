@@ -27,8 +27,9 @@ load_dotenv()
 
 # Get API keys from environment
 BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY")
-if not BIRDEYE_API_KEY:
-    raise ValueError("🚨 BIRDEYE_API_KEY not found in environment variables!")
+if not BIRDEYE_API_KEY or BIRDEYE_API_KEY == "your_birdeye_api_key_here":
+    cprint("⚠️ BIRDEYE_API_KEY not configured. Token operations will be limited.", "yellow", "on_black")
+    BIRDEYE_API_KEY = None  # Set to None to allow graceful degradation
 
 sample_address = "2yXTyarttn2pTZ6cwt4DqmrRuBw1G7pmFv9oT6MStdKP"
 

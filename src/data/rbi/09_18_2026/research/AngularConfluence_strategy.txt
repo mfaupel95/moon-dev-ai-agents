@@ -1,0 +1,25 @@
+STRATEGY_NAME: AngularConfluence
+
+STRATEGY_DETAILS:
+
+**Key Strategy Components:**
+1.  **Gann Angles:** The primary price structure is defined by geometric angles (typically 1x1, 1x2, or 2x2) derived from the price action and time, representing resistance and support levels.
+2.  **5-Period SMA:** A fast-moving Simple Moving Average used as a short-term trend filter. It is not a target itself, but a confirmation tool.
+3.  **Intraday Timeframe:** Designed specifically for shorter-term trading sessions (e.g., 15-minute or 1-hour charts) to capitalize on intraday momentum.
+4.  **Intersection Target:** The unique confluence point where the Gann Angle line meets the 5-period SMA line is identified as the precise profit exit level.
+
+**Entry/Exit Rules:**
+*   **Trend Confirmation:** The trade is only taken if the price is consistently moving in the direction of the 5-period SMA. For example, if the price is above the 5-period SMA and the SMA is sloping up, only long positions are considered.
+*   **Entry Trigger:** A buy entry is executed when the price retraces and touches the Gann Angle (acting as support) while staying aligned with the 5-period SMA direction. A sell entry is executed when price pushes against the Gann Angle (acting as resistance) while the price is below the 5-period SMA.
+*   **Exit Rule (Confluence):** The profit target is set dynamically where the Gann Angle intersects with the 5-period SMA. As the SMA moves with the trend, the intersection point acts as a moving target. The trade is closed when the price reaches this specific intersection point.
+*   **Stop Loss:** Placed below the recent swing low (for longs) or above the recent swing high (for shorts), specifically respecting the nearest Gann Angle level or the current 5-period SMA value if it closes against the trend.
+
+**Risk Management:**
+*   **Position Sizing:** Capital allocation is adjusted based on the distance between the entry point and the exit intersection. Wider ranges allow for larger position sizes.
+*   **Invalidation:** If the price closes beyond the 5-period SMA in the opposite direction of the initial trend assumption, the trade is immediately invalidated, and the stop loss is triggered.
+*   **Intraday Limits:** Trades are closed by the end of the trading session (e.g., 4 PM EST) to avoid overnight volatility risk, regardless of target attainment.
+
+**Required Indicators:**
+*   **5-Period Simple Moving Average (SMA):** Calculated on the current asset price to confirm immediate trend direction.
+*   **Gann Angle:** Calculated using price and time values to create dynamic price levels (often visualized as price projection lines based on the previous high/low and time elapsed).
+*   **Volume (Optional):** Used to validate breakout strength when price approaches the target intersection point.

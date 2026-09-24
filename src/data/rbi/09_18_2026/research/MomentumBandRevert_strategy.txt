@@ -1,0 +1,37 @@
+STRATEGY_NAME: MomentumBandRevert
+
+STRATEGY_DETAILS:
+STRATEGY OVERVIEW:
+The MomentumBandRevert strategy combines Relative Strength Index (RSI) momentum signals with Bollinger Band (BB) volatility levels to identify entries in trending environments. It is designed to capture momentum breaks while ensuring that the trade position is taken only when price action confirms the trend direction, and it includes a specific mean-reversion exit rule to lock in profits before a trend exhaustion occurs.
+
+KEY STRATEGY COMPONENTS:
+1.  **Trend Filter:** The strategy strictly requires trending conditions to be active. This prevents false signals during sideways/choppy markets where RSI and BB can fluctuate wildly without a clear directional path.
+2.  **Momentum Filter (RSI):** Uses RSI to gauge the strength of the price move. It acts as a confirmation filter to ensure the momentum behind the price crossing the Bollinger Band is significant.
+3.  **Volatility Filter (Bollinger Bands):** Uses the upper and lower bands as dynamic support/resistance levels. The strategy triggers based on the price interacting with these bands.
+4.  **Mean Reversion Exit:** Unlike standard trend-followers, this strategy exits based on price reversion (pullback) rather than a hard stop loss or trailing stop, indicating that the trend has potentially paused or reversed.
+
+ENTRY RULES:
+*   **Trend Identification:** Confirm that the market is in a clear trend (e.g., using a 200 EMA slope or higher timeframe bias).
+*   **Price Action:** Price must cross the relevant Bollinger Band (Upper for long, Lower for short).
+*   **RSI Confirmation:** At the moment of the price cross, RSI must be crossing in the direction of the trade (e.g., RSI rising above 50 for a long entry, or RSI falling below 50 for a short entry).
+*   **Note on Technicality:** While the prompt mentions "RSI crosses... its Bollinger Bands," this implies a conflation of price and oscillator scales. The actionable rule is Price crossing the BB while RSI confirms the momentum of that move.
+
+EXIT RULES:
+*   **Reversion Signal:** The primary exit condition is when the price reverts significantly from the entry point or the Bollinger Band level.
+*   **Time-Based Stop:** If the price does not revert within a specific timeframe, a fixed loss is executed.
+*   **RSI Divergence:** If RSI forms a divergence while price reverts, the trade is closed immediately.
+
+RISK MANAGEMENT:
+*   **Stop Loss:** Place a stop loss just below the recent swing low (for longs) or above the swing high (for shorts) to protect against immediate trend failure.
+*   **Position Sizing:** Limit risk to 1-2% of account balance per trade, as mean reversion strategies can be volatile during false breakouts.
+*   **Trend Validation:** Do not trade if the 200 EMA is flat or if volatility is too low (low BB width).
+
+REQUIRED INDICATORS:
+1.  **Bollinger Bands (20, 2):** Standard settings for dynamic volatility bands.
+2.  **RSI (14):** Standard settings for momentum confirmation.
+3.  **Exponential Moving Average (200):** To filter for trending conditions.
+4.  **Volume (Optional):** To confirm the strength of the entry and exit moves.
+
+MONITORING NOTES:
+*   This strategy is best suited for trending assets like crypto, forex, or commodities.
+*   Monitor the relationship between RSI and Band width; if RSI is extreme (>70/<30) while price is inside the bands, the mean reversion exit may occur sooner.

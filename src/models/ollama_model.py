@@ -34,7 +34,17 @@ class OllamaModel(BaseModel):
             model_name: Name of the Ollama model to use (Standard: OLLAMA_MODEL
                         aus der Umgebung, sonst STANDARD_MODELL)
         """
-        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/api")
+        base = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/api")
+        # OLLAMA_BASE_URL kann /api, /v1 (OpenAI-kompatibel) oder nackt
+        # (http://host:11434) sein. Fuer den nativen /api-Endpunkt muss die
+        # URL immer auf /api zeigen, sonst schlaegt is_available() fehl und
+        # get_model liefert None.
+        if not base.endswith("/api"):
+            base = base.rstrip("/")
+            if base.endswith("/v1"):
+                base = base[:-3]
+            base = base + "/api"
+        self.base_url = base
         self.model_name = model_name or os.getenv("OLLAMA_MODEL", STANDARD_MODELL)
         # Pass a dummy API key to satisfy BaseModel
         super().__init__(api_key="LOCAL_OLLAMA")
