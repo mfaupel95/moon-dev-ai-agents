@@ -119,7 +119,7 @@ class LiquidationAgent(BaseAgent):
         if deepseek_key and MODEL_OVERRIDE.lower() == "deepseek-chat":
             self.deepseek_client = openai.OpenAI(
                 api_key=deepseek_key,
-                base_url=DEEPSEEK_BASE_URL
+                base_url=os.getenv("DEEPSEEK_BASE_URL") or DEEPSEEK_BASE_URL
             )
             print("🚀 DeepSeek model initialized!")
         else:

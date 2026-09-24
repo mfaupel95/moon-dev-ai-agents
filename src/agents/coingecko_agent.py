@@ -286,7 +286,7 @@ class AIAgent:
             if deepseek_key:
                 self.client = openai.OpenAI(
                     api_key=deepseek_key,
-                    base_url=DEEPSEEK_BASE_URL
+                    base_url=os.getenv("DEEPSEEK_BASE_URL") or DEEPSEEK_BASE_URL
                 )
                 print(f"🚀 {name} using DeepSeek model: {model}")
             else:
@@ -419,13 +419,19 @@ class CoinGeckoAPI:
     
     def __init__(self):
         self.api_key = os.getenv("COINGECKO_API_KEY")
+        # Ohne Schluessel die OEFFENTLICHE CoinGecko-API: dieselben Endpunkte,
+        # eigenes Rate-Limit, kein Schluessel noetig (Haus-Weg: schluessellos).
+        self.base_url = ("https://pro-api.coingecko.com/api/v3" if self.api_key
+                         else "https://api.coingecko.com/api/v3")
         if not self.api_key:
-            print("⚠️ Warning: COINGECKO_API_KEY not found in environment variables!")
-        self.base_url = "https://pro-api.coingecko.com/api/v3"
+            print("⚠️ Warning: COINGECKO_API_KEY not found - oeffentliche CoinGecko-API wird benutzt")
         self.headers = {
-            "x-cg-pro-api-key": self.api_key,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"),
         }
+        if self.api_key:
+            self.headers["x-cg-pro-api-key"] = self.api_key
         print("🦎 Moon Dev's CoinGecko API initialized!")
         
     def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Dict:

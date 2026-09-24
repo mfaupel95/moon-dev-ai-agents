@@ -423,7 +423,7 @@ def init_deepseek_client():
             
         client = openai.OpenAI(
             api_key=deepseek_key,
-            base_url=DEEPSEEK_BASE_URL
+            base_url=os.getenv("DEEPSEEK_BASE_URL") or DEEPSEEK_BASE_URL
         )
         return client
     except Exception as e:
