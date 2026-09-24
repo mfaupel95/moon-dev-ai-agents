@@ -108,6 +108,37 @@ Author: Moon Dev 🌙
 # - "deepseek-reasoner" (DeepSeek's R1 reasoning model)
 # - "0" (Use config.py's AI_MODEL setting)
 MODEL_OVERRIDE = "deepseek-chat"  # Set to "0" to disable override
+
+
+def _llm_text(client, model, system_prompt, user_text, max_tokens, temperature) -> str:
+    """Sprachmodell-Aufruf in der FORM des jeweiligen Clients.
+
+    Der Agent baut je nach Schluessel-Anwesenheit einen OpenAI-Client
+    (deepseek/lokal) oder einen Anthropic-Client. Diese Hilfsfunktion fragt die
+    FORM ab, statt eine Wolke zu raten - die Nebenwege (Token-Extraktor,
+    Runden-Synopsis) riefen hart `client.messages.create` und scheiterten damit
+    am OpenAI-Client ("'OpenAI' object has no attribute 'messages'").
+    """
+    if hasattr(client, "chat"):
+        antwort = client.chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            messages=[{"role": "system", "content": system_prompt},
+                      {"role": "user", "content": user_text}],
+        )
+        return antwort.choices[0].message.content or ""
+    felder = {"model": model, "max_tokens": max_tokens,
+              "system": system_prompt,
+              "messages": [{"role": "user", "content": user_text}]}
+    try:
+        message = client.messages.create(temperature=temperature, **felder)
+    except TypeError:
+        # Ein Stummel-Client (nicht das offizielle SDK) kennt temperature nicht.
+        message = client.messages.create(**felder)
+    return str(message.content)
+
+
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"  # Base URL for DeepSeek API
 
 # 🤖 Agent Prompts & Personalities
@@ -360,30 +391,9 @@ Remember to format your response like this:
 [Fun reference to Moon Dev's trading style]
 """
             
-            # Get AI response with correct client
-            if "deepseek" in self.model.lower():
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": prompt},
-                        {"role": "user", "content": market_context}
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=temperature
-                )
-                response_text = response.choices[0].message.content
-            else:
-                message = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    system=prompt,
-                    messages=[{
-                        "role": "user",
-                        "content": market_context
-                    }]
-                )
-                response_text = str(message.content)
+            # Get AI response in der Form des jeweiligen Clients
+            response_text = _llm_text(self.client, self.model, prompt,
+                                      market_context, max_tokens, temperature)
             
             # Clean up the response
             response = (response_text
@@ -553,9 +563,14 @@ class CoinGeckoAPI:
 class TokenExtractorAgent:
     """Agent that extracts token/crypto symbols from conversations"""
     
-    def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_KEY"))
-        self.model = TOKEN_EXTRACTOR_MODEL
+    def __init__(self, client=None, model=None):
+        # Client und Modell kommen vom System (wie bei der Synopsis ueber
+        # agent_one) - sonst baut sich der Extraktor einen eigenen Anthropic-
+        # Client und laeuft an der lokalen Bruecke vorbei (T-060).
+        if client is None:
+            client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_KEY"))
+        self.client = client
+        self.model = model or TOKEN_EXTRACTOR_MODEL
         self.token_history = self._load_token_history()
         cprint("🔍 Token Extractor Agent initialized!", "white", "on_cyan")
         
@@ -573,14 +588,8 @@ class TokenExtractorAgent:
         try:
             print_section("🔍 Extracting Mentioned Tokens", "on_cyan")
             
-            message = self.client.messages.create(
-                model=self.model,
-                max_tokens=EXTRACTOR_MAX_TOKENS,
-                temperature=EXTRACTOR_TEMP,
-                system=TOKEN_EXTRACTOR_PROMPT,  # Use the token extractor prompt
-                messages=[{
-                    "role": "user",
-                    "content": f"""
+            text = _llm_text(self.client, self.model, TOKEN_EXTRACTOR_PROMPT,
+                             f"""
 Agent One said:
 {agent_one_msg}
 
@@ -588,12 +597,11 @@ Agent Two said:
 {agent_two_msg}
 
 Extract all token symbols and return as a simple list.
-"""
-                }]
-            )
-            
+""", EXTRACTOR_MAX_TOKENS, EXTRACTOR_TEMP)
+
             # Clean up response and split into list
-            tokens = str(message.content).strip().split('\n')
+            tokens = (text.replace("TextBlock(text='", "").replace("')", "")
+                          .strip().split('\n'))
             tokens = [t.strip().upper() for t in tokens if t.strip()]
             
             # Create records for each token
@@ -631,7 +639,8 @@ class MultiAgentSystem:
         self.api = CoinGeckoAPI()
         self.agent_one = AIAgent("Agent One", AGENT_ONE_MODEL)
         self.agent_two = AIAgent("Agent Two", AGENT_TWO_MODEL)
-        self.token_extractor = TokenExtractorAgent()
+        self.token_extractor = TokenExtractorAgent(self.agent_one.client,
+                                                   self.agent_one.model)
         self.round_history = []  # Store round synopses
         self.max_history_rounds = 50  # Keep last 50 rounds of context
         cprint("🎮 Moon Dev's Trading Game System Ready! 🎮", "white", "on_green", attrs=["bold"])
@@ -639,14 +648,8 @@ class MultiAgentSystem:
     def generate_round_synopsis(self, agent_one_response: str, agent_two_response: str) -> str:
         """Generate a brief synopsis of the round's key points using Synopsis Agent"""
         try:
-            message = self.agent_one.client.messages.create(
-                model="claude-3-haiku-20240307",
-                max_tokens=SYNOPSIS_MAX_TOKENS,
-                temperature=SYNOPSIS_TEMP,
-                system=SYNOPSIS_AGENT_PROMPT,  # Use the synopsis agent prompt
-                messages=[{
-                    "role": "user",
-                    "content": f"""
+            synopsis = _llm_text(self.agent_one.client, self.agent_one.model,
+                                 SYNOPSIS_AGENT_PROMPT, f"""
 Agent One said:
 {agent_one_response}
 
@@ -654,11 +657,9 @@ Agent Two said:
 {agent_two_response}
 
 Create a brief synopsis of this trading round.
-"""
-                }]
-            )
-            
-            synopsis = str(message.content).strip()
+""", SYNOPSIS_MAX_TOKENS, SYNOPSIS_TEMP)
+            synopsis = (synopsis.replace("TextBlock(text='", "")
+                              .replace("')", "").strip())
             return synopsis
             
         except Exception as e:
