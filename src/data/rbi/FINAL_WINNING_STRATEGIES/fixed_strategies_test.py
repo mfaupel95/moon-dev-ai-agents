@@ -12,6 +12,7 @@ warnings.filterwarnings('ignore')
 # Import all strategy classes
 import sys
 import os
+from pathlib import Path
 
 # Add current directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +35,7 @@ except ImportError as e:
     print("Running individual strategy files instead...")
 
 # 🌙 Data Loading with Adaptive Header Detection
-data_path = '/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv'
+data_path = str(Path(__file__).resolve().parents[1] / 'BTC-USD-15m.csv')
 
 def load_btc_data(file_path):
     """Load and prepare BTC data with adaptive header detection"""

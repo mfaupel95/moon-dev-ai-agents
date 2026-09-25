@@ -6,10 +6,11 @@ import pandas as pd
 import numpy as np
 from backtesting import Backtest, Strategy
 import warnings
+from pathlib import Path
 warnings.filterwarnings('ignore')
 
 # 🌙 Data Loading with Adaptive Header Detection
-data_path = '/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv'
+data_path = str(Path(__file__).resolve().parents[1] / 'BTC-USD-15m.csv')
 
 def load_btc_data(file_path):
     """Load and prepare BTC data with adaptive header detection"""

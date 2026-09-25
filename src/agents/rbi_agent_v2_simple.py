@@ -15,6 +15,11 @@ import itertools
 import sys
 from dotenv import load_dotenv
 from openai import OpenAI
+
+try:
+    from src.agents.backtest_start import daten_pfad, interpreter
+except ImportError:  # direkt gestartet (python datei.py)
+    from backtest_start import daten_pfad, interpreter
 from anthropic import Anthropic
 
 # Load environment variables
@@ -30,7 +35,7 @@ AI_MAX_TOKENS = 4000
 # DeepSeek client
 deepseek_client = OpenAI(
     api_key=os.getenv("DEEPSEEK_KEY"),
-    base_url="https://api.deepseek.com"
+    base_url=os.getenv("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
 )
 
 # Claude client
@@ -234,7 +239,8 @@ def execute_backtest(file_path: str, strategy_name: str) -> dict:
     """Execute backtest in conda environment"""
     cprint(f"\n🚀 Executing backtest: {strategy_name}", "cyan")
     
-    cmd = ["conda", "run", "-n", CONDA_ENV, "python", str(file_path)]
+    # Ausfuehrung ohne conda: siehe src/agents/backtest_start.py
+    cmd = interpreter(file_path)
     
     result = subprocess.run(
         cmd,
@@ -268,6 +274,13 @@ def execute_backtest(file_path: str, strategy_name: str) -> dict:
             print(output['stderr'])
     
     return output
+
+
+# Datenpfad im Prompt: der Pfad des Autors wird ersetzt (siehe backtest_start.py)
+BACKTEST_PROMPT = BACKTEST_PROMPT.replace(
+    "/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv",
+    daten_pfad(),
+)
 
 def main():
     """Main function"""

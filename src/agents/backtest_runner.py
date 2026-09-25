@@ -10,8 +10,13 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from src.agents.backtest_start import daten_pfad, interpreter
+except ImportError:  # direkt gestartet (python datei.py)
+    from backtest_start import daten_pfad, interpreter
+
 # CONFIGURATION - Change this to test different files
-BACKTEST_FILE = "/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/agents/test_backtest_working.py"
+BACKTEST_FILE = str(REPO / "src" / "agents" / "test_backtest_working.py")
 CONDA_ENV = "tflow"  # Your conda environment name
 
 def run_backtest_in_conda(file_path: str, conda_env: str = "tflow"):
@@ -37,10 +42,8 @@ def run_backtest_in_conda(file_path: str, conda_env: str = "tflow"):
         }
     
     # Build the command to run in conda environment
-    cmd = [
-        "conda", "run", "-n", conda_env,
-        "python", file_path
-    ]
+    # Ausfuehrung ohne conda: siehe src/agents/backtest_start.py
+    cmd = interpreter(file_path)
     
     print(f"🔧 Command: {' '.join(cmd)}")
     print("=" * 60)

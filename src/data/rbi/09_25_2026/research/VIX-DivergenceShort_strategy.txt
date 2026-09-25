@@ -1,0 +1,33 @@
+STRATEGY_NAME: VIX-DivergenceShort
+
+STRATEGY_DETAILS:
+
+**1. Key Strategy Components**
+*   **Asset Class:** S&P 500 Index Options (specifically Put options).
+*   **Core Trigger:** A divergence between the 20-day VIX futures price and the 20-day S&P 500 price action. This identifies a disconnect where volatility expectations are rising or falling at a different pace than the underlying asset's price, often signaling an impending reversal or extreme market condition.
+*   **Leverage Profile:** Maximum 2x leverage applied to the option position.
+*   **Risk Boundary:** Defined by a trailing 10-trading-day Moving Average (MA) on the index price.
+
+**2. Entry Rules**
+*   **Condition:** Identify a divergence where the 20-day VIX futures curve is moving in the opposite direction of the 20-day S&P 500 price trend.
+    *   *Example Scenario:* If the S&P 500 is trending higher (bullish), but the 20-day VIX futures are rising (increasing fear/volatility) without a corresponding price drop, this is a bullish divergence (buying protection). Conversely, if the S&P 500 drops but VIX stays flat or rises slowly, it indicates a "dead cat bounce" risk. The prompt implies buying puts on divergence, suggesting a scenario where the index is stable/rising but fear is building, or the index is falling but fear is lagging (potential reversal).
+    *   *Refined Interpretation for "Buy Put":* Typically, one buys puts when they expect a crash. The divergence here likely signals that the market is overextended in a bullish trend while volatility is compressing, or conversely, that volatility is spiking while the index is still holding up, signaling imminent downside pressure.
+*   **Execution:** Purchase S&P 500 Put Options.
+*   **Leverage:** Apply up to 2x leverage (e.g., using margin to control more notional value) to enhance potential returns on the volatility play.
+
+**3. Exit Rules**
+*   **Primary Exit:** Close the position immediately upon the first breach of the 10-trading-day Moving Average.
+*   **Logic:** The MA acts as a dynamic support/resistance or trend filter. If the index breaks below the 10-day MA, it confirms the divergence thesis is wrong (the "fear" triggered a crash), and the put position should be exited to lock in gains or cut losses. If the index stays above the MA, the trade remains open as long as the divergence condition persists.
+*   **Stop Loss (Implied):** The strategy relies heavily on the MA breach; if the MA breaks and the divergence closes, the trade is terminated.
+
+**4. Risk Management**
+*   **Leverage Control:** Strictly limit leverage to 2x. This prevents catastrophic blow-up of the account during tail events, as option premiums can expire rapidly in volatile markets.
+*   **Time Horizon:** Not explicitly defined, but implied to be short-to-medium term based on the 10-day MA exit condition.
+*   **Position Sizing:** Given the high risk of options, position sizing should be conservative relative to total capital to ensure the 2x leverage does not exceed 4x-5x of actual capital at risk.
+*   **Volatility Exposure:** The strategy specifically targets the VIX (volatility), meaning losses are correlated with volatility spikes rather than just price direction alone.
+
+**5. Required Indicators**
+*   **VIX Futures:** 20-day rolling average or current price of the VIX Futures contract.
+*   **S&P 500 Price Action:** 20-day closing price data (for trend/divergence calculation).
+*   **Moving Average:** 10-trading-day Simple Moving Average (SMA) on the S&P 500 index.
+*   **Option Chain:** S&P 500 Put options data for entry execution.

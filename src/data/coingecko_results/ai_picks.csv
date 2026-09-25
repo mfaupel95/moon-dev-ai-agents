@@ -606,3 +606,90 @@ timestamp,coin_id,name,symbol,source,price_usd,volume_24h,price_change_24h,recom
 2026-09-25T00:37:24.059953,ondo-finance,Ondo,ondo,Top gainer,0.519653,1038217737.0,25.8545,DO NOTHING,https://www.coingecko.com/en/coins/ondo-finance
 2026-09-25T00:37:44.256912,litecoin,Litecoin,ltc,Top gainer,71.1,1710242788.0,16.24141,SELL,https://www.coingecko.com/en/coins/litecoin
 2026-09-25T00:39:05.393985,whitecoin,Whitecoin,xwc,Recently Added,0.01265271,698437,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T01:39:30.591965,quant-network,Quant,qnt,Top gainer,89.95,36789538.0,27.52341,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T01:40:53.893768,namecoin,Namecoin,nmc,Recently Added,1.048,1770.71,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T01:41:08.608747,primecoin,Primecoin,xpm,Recently Added,0.0179947,57.13,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T02:43:07.341354,litecoin,Litecoin,ltc,Top gainer,71.42,1728165464.0,14.67068,DO NOTHING,https://www.coingecko.com/en/coins/litecoin
+2026-09-25T03:43:41.445151,ondo-finance,Ondo,ondo,Top gainer,0.52866,1130403746.0,28.95669,BUY,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T03:44:48.993570,litecoin,Litecoin,ltc,Top gainer,71.42,1739350170.0,15.6349,DO NOTHING,https://www.coingecko.com/en/coins/litecoin
+2026-09-25T03:45:14.805967,namecoin,Namecoin,nmc,Recently Added,1.045,1765.66,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T03:45:29.405386,primecoin,Primecoin,xpm,Recently Added,0.0179947,57.13,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T04:46:31.919734,ondo-finance,Ondo,ondo,Top gainer,0.528896,1137946245.0,27.02911,DO NOTHING,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T04:47:52.739636,namecoin,Namecoin,nmc,Recently Added,1.048,1772.02,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T04:48:07.207662,primecoin,Primecoin,xpm,Recently Added,0.0179947,57.13,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T04:48:27.186227,whitecoin,Whitecoin,xwc,Recently Added,0.01269809,738188,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T05:48:57.791938,quant-network,Quant,qnt,Top gainer,91.81,45427162.0,29.70118,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T05:49:17.628569,ondo-finance,Ondo,ondo,Top gainer,0.525898,1174121727.0,25.87349,SELL,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T05:49:37.783136,stellar,Stellar,xlm,Top gainer,0.218251,440481694.0,8.43593,DO NOTHING,https://www.coingecko.com/en/coins/stellar
+2026-09-25T05:51:16.229594,whitecoin,Whitecoin,xwc,Recently Added,0.01255528,742181,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T06:52:47.758303,stellar,Stellar,xlm,Top gainer,0.221213,475429871.0,9.66963,BUY,https://www.coingecko.com/en/coins/stellar
+2026-09-25T07:53:21.928436,quant-network,Quant,qnt,Top gainer,98.08,59633660.0,36.58601,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T07:54:42.862343,namecoin,Namecoin,nmc,Recently Added,1.34,4536.51,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T07:54:57.438366,primecoin,Primecoin,xpm,Recently Added,0.0179947,57.13,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T07:55:17.673443,whitecoin,Whitecoin,xwc,Recently Added,0.01253737,745977,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T08:55:51.398172,quant-network,Quant,qnt,Top gainer,100.6,67088729.0,40.07283,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T08:56:11.409096,ondo-finance,Ondo,ondo,Top gainer,0.546204,1249740403.0,26.40317,DO NOTHING,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T08:57:26.958481,primecoin,Primecoin,xpm,Recently Added,0.0179947,57.13,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T08:57:47.528965,whitecoin,Whitecoin,xwc,Recently Added,0.01249166,716709,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T09:58:19.534047,quant-network,Quant,qnt,Top gainer,101.46,83044088.0,38.9647,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T09:59:44.947291,namecoin,Namecoin,nmc,Recently Added,1.33,3822.17,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T09:59:59.398379,primecoin,Primecoin,xpm,Recently Added,0.0179947,57.13,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T10:00:20.747739,whitecoin,Whitecoin,xwc,Recently Added,0.01248572,703360,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T11:00:51.182403,quant-network,Quant,qnt,Top gainer,99.34,86512893.0,40.10533,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T11:01:11.020951,ondo-finance,Ondo,ondo,Top gainer,0.565054,1371734234.0,31.6774,BUY,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T11:02:25.962970,primecoin,Primecoin,xpm,Recently Added,0.03409281,0.00272742,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T11:02:46.781223,whitecoin,Whitecoin,xwc,Recently Added,0.01287561,713133,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T12:04:25.758854,near,NEAR Protocol,near,Top gainer,4.93,1701668802.0,17.71699,DO NOTHING,https://www.coingecko.com/en/coins/near
+2026-09-25T12:04:45.646693,namecoin,Namecoin,nmc,Recently Added,1.34,3759.52,SELL,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T13:06:34.942733,quant-network,Quant,qnt,Top gainer,98.45,97017007.0,35.70678,SELL,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T13:07:06.282380,ondo-finance,Ondo,ondo,Top gainer,0.550288,1380168614.0,29.1041,SELL,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T13:07:37.856544,near,NEAR Protocol,near,Top gainer,5.01,1782954734.0,18.22683,DO NOTHING,https://www.coingecko.com/en/coins/near
+2026-09-25T13:08:09.798403,namecoin,Namecoin,nmc,Recently Added,1.33,3757.26,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T13:08:24.269997,primecoin,Primecoin,xpm,Recently Added,0.03409424,0.00272754,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T13:08:56.105936,whitecoin,Whitecoin,xwc,Recently Added,0.01357275,784074,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T14:09:28.133957,quant-network,Quant,qnt,Top gainer,96.88,97801532.0,33.14379,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T14:10:48.036962,namecoin,Namecoin,nmc,Recently Added,1.33,3759.58,SELL,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T14:11:02.480719,primecoin,Primecoin,xpm,Recently Added,0.03409356,0.00272749,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T14:11:22.323812,whitecoin,Whitecoin,xwc,Recently Added,0.01405133,820079,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T16:13:00.882443,ethena,Ethena,ena,Top gainer,0.245014,796579188.0,12.81541,DO NOTHING,https://www.coingecko.com/en/coins/ethena
+2026-09-25T16:13:22.931270,namecoin,Namecoin,nmc,Recently Added,1.27,4031.84,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T16:13:37.379003,primecoin,Primecoin,xpm,Recently Added,0.03409266,0.00272741,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T16:42:36.881220,quant-network,Quant,qnt,Top gainer,93.59,96102746.0,16.30762,SELL,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T16:43:45.017431,canton-network,Canton,cc,Top gainer,0.124718,35200854.0,13.77882,DO NOTHING,https://www.coingecko.com/en/coins/canton-network
+2026-09-25T16:44:58.194247,bitway,Bitway,btw,Top gainer,1.19,42129608.0,13.76169,DO NOTHING,https://www.coingecko.com/en/coins/bitway
+2026-09-25T16:46:12.486817,namecoin,Namecoin,nmc,Recently Added,1.27,3788.29,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T16:46:27.081227,primecoin,Primecoin,xpm,Recently Added,0.03409353,0.00272748,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T17:49:26.573301,bitway,Bitway,btw,Top gainer,1.22,20086422.0,16.33558,DO NOTHING,https://www.coingecko.com/en/coins/bitway
+2026-09-25T17:50:49.505094,quant-network,Quant,qnt,Top gainer,94.21,96660393.0,14.95577,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T17:51:52.712998,ethena,Ethena,ena,Top gainer,0.249747,816575442.0,14.78345,DO NOTHING,https://www.coingecko.com/en/coins/ethena
+2026-09-25T17:52:58.672749,namecoin,Namecoin,nmc,Recently Added,1.27,3726.03,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T17:53:13.281195,primecoin,Primecoin,xpm,Recently Added,0.03409368,0.00272749,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T17:54:19.040029,whitecoin,Whitecoin,xwc,Recently Added,0.01310155,745267,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T18:55:52.378111,ethena,Ethena,ena,Top gainer,0.260866,910583558.0,19.22678,SELL,https://www.coingecko.com/en/coins/ethena
+2026-09-25T18:57:18.934400,aerodrome-finance,Aerodrome Finance,aero,Top gainer,0.827594,96782120.0,18.62449,DO NOTHING,https://www.coingecko.com/en/coins/aerodrome-finance
+2026-09-25T18:58:20.204507,quant-network,Quant,qnt,Top gainer,98.84,100862154.0,16.57541,DO NOTHING,https://www.coingecko.com/en/coins/quant-network
+2026-09-25T18:59:35.473868,namecoin,Namecoin,nmc,Recently Added,1.27,3754.59,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T18:59:50.050638,primecoin,Primecoin,xpm,Recently Added,0.03409267,0.00272741,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T19:00:49.920622,whitecoin,Whitecoin,xwc,Recently Added,0.01345601,744055,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T20:03:39.224435,aerodrome-finance,Aerodrome Finance,aero,Top gainer,0.847584,109941747.0,21.30388,DO NOTHING,https://www.coingecko.com/en/coins/aerodrome-finance
+2026-09-25T20:04:52.697298,ethena,Ethena,ena,Top gainer,0.258783,944259207.0,18.94,SELL,https://www.coingecko.com/en/coins/ethena
+2026-09-25T20:05:53.575186,namecoin,Namecoin,nmc,Recently Added,1.27,3756.72,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T20:06:19.150732,primecoin,Primecoin,xpm,Recently Added,0.03409267,0.00272741,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T20:07:20.208704,whitecoin,Whitecoin,xwc,Recently Added,0.01360644,725283,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T21:08:27.004485,bitway,Bitway,btw,Top gainer,1.26,21155521.0,26.68833,SELL,https://www.coingecko.com/en/coins/bitway
+2026-09-25T21:09:27.673383,aerodrome-finance,Aerodrome Finance,aero,Top gainer,0.851981,121483479.0,21.41336,DO NOTHING,https://www.coingecko.com/en/coins/aerodrome-finance
+2026-09-25T21:10:28.977267,ethena,Ethena,ena,Top gainer,0.257393,961234436.0,18.35336,SELL,https://www.coingecko.com/en/coins/ethena
+2026-09-25T21:11:30.102446,namecoin,Namecoin,nmc,Recently Added,1.27,3647.34,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T21:11:44.731599,primecoin,Primecoin,xpm,Recently Added,0.03409267,0.00272741,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T21:12:47.176112,whitecoin,Whitecoin,xwc,Recently Added,0.01376296,712947,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-25T21:47:19.330422,bitway,Bitway,btw,Top gainer,1.28,21666566.0,20.73895,DO NOTHING,https://www.coingecko.com/en/coins/bitway
+2026-09-25T22:13:28.555522,bitway,Bitway,btw,Top gainer,1.29,21867521.0,21.6196,DO NOTHING,https://www.coingecko.com/en/coins/bitway
+2026-09-25T22:14:31.010555,ethena,Ethena,ena,Top gainer,0.261298,998258477.0,17.01375,DO NOTHING,https://www.coingecko.com/en/coins/ethena
+2026-09-25T22:14:51.917650,namecoin,Namecoin,nmc,Recently Added,1.27,3560.64,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T22:15:06.815798,primecoin,Primecoin,xpm,Recently Added,0.03409267,0.00272741,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T23:16:18.645347,bitway,Bitway,btw,Top gainer,1.3,21346138.0,34.09011,DO NOTHING,https://www.coingecko.com/en/coins/bitway
+2026-09-25T23:17:39.632854,namecoin,Namecoin,nmc,Recently Added,1.27,3473.66,DO NOTHING,https://www.coingecko.com/en/coins/namecoin
+2026-09-25T23:17:54.041987,primecoin,Primecoin,xpm,Recently Added,0.03409267,0.00272741,DO NOTHING,https://www.coingecko.com/en/coins/primecoin
+2026-09-25T23:18:13.735834,whitecoin,Whitecoin,xwc,Recently Added,0.0134621,661040,DO NOTHING,https://www.coingecko.com/en/coins/whitecoin
+2026-09-26T01:20:03.696077,sui,Sui,sui,Top gainer,1.21,1805570291.0,19.89166,SELL,https://www.coingecko.com/en/coins/sui
+2026-09-26T01:20:24.098761,namecoin,Namecoin,nmc,Recently Added,1.27,3479.51,DO NOTHING,https://www.coingecko.com/en/coins/namecoin

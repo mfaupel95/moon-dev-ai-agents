@@ -1,3 +1,6 @@
 timestamp,coin_id,name,symbol,source,price_usd,volume_24h,price_change_24h,recommendation,coingecko_url
 2026-09-16T23:32:47.188105,near,NEAR Protocol,near,Top gainer,2.59,548966780.0,11.55722,BUY,https://www.coingecko.com/en/coins/near
 2026-09-17T04:59:38.527333,zcash,Zcash,zec,Top gainer,1376.06,2552211739.0,22.86423,BUY,https://www.coingecko.com/en/coins/zcash
+2026-09-25T03:43:41.445151,ondo-finance,Ondo,ondo,Top gainer,0.52866,1130403746.0,28.95669,BUY,https://www.coingecko.com/en/coins/ondo-finance
+2026-09-25T06:52:47.758303,stellar,Stellar,xlm,Top gainer,0.221213,475429871.0,9.66963,BUY,https://www.coingecko.com/en/coins/stellar
+2026-09-25T11:01:11.020951,ondo-finance,Ondo,ondo,Top gainer,0.565054,1371734234.0,31.6774,BUY,https://www.coingecko.com/en/coins/ondo-finance

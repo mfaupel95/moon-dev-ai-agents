@@ -1,0 +1,31 @@
+STRATEGY_NAME: QuantumRSIVIX
+
+STRATEGY_DETAILS:
+This strategy, named **QuantumRSIVIX**, leverages the concept of "quantum" market instability—where volatility expansion (VIX rise) creates a unique environment for mean-reversion or reversal plays during trending phases. The core logic is that when the VIX increases, liquidity is shifting, and divergences in RSI relative to price action become more significant signals for potential reversals or exhaustion of a trend, rather than just continuation.
+
+1. **Key Strategy Components**:
+   - **Volatility Gauge (VIX)**: Acts as the primary filter. The strategy only considers setups when the VIX index is in an upward trajectory or has recently spiked, indicating elevated market fear or uncertainty. This context changes the risk/reward profile of the trade.
+   - **Divergence Detection (RSI vs. Price)**: The engine of the strategy. It monitors the Relative Strength Index (RSI) against the actual price bars. Specifically, it looks for bullish divergence (price making lower lows while RSI makes higher lows) or bearish divergence (price making higher highs while RSI makes lower highs) that contradicts the immediate price trend.
+   - **Volatility Scaling (ATR)**: Instead of fixed price targets, exits and stop losses are derived dynamically using the Average True Range (ATR), ensuring the trade scales with the current market turbulence triggered by the VIX rise.
+
+2. **Entry/Exit Rules**:
+   - **Entry Conditions (Long Only)**:
+     1. Confirm VIX is increasing (e.g., current reading is above a 20-day moving average or simply trending up over the last 3 periods).
+     2. Identify a price bar forming a lower low compared to the previous swing low.
+     3. Simultaneously, the RSI for that same period must form a higher low compared to the previous swing low (Bullish RSI Divergence).
+     4. Enter a long position on the close of the bar confirming the divergence pattern.
+   - **Exit Conditions**:
+     - **Stop Loss**: Placed at `Current Entry Price - (X * ATR)`, where X is a multiplier (e.g., 1.5 to 2.0) adjusted dynamically based on the prevailing VIX level (higher VIX = wider stops).
+     - **Take Profit**: Exited when the price moves `Y * ATR` in the favorable direction (e.g., 3.0 to 5.0 ATRs) OR when the RSI re-crosses the trend line and the divergence pattern disappears.
+     - **Trailing Stop**: Once the price reaches 50% of the target, switch to a trailing stop based on the ATR to lock in profits as the trend develops.
+
+3. **Risk Management**:
+   - **Position Sizing**: Since VIX volatility is high, position size is inversely proportional to the ATR. As VIX rises, the ATR expands, requiring smaller position sizes to maintain constant dollar risk.
+   - **Time Limit**: To avoid holding a divergence trade indefinitely if the trend resumes against the signal, a hard time limit is applied (e.g., 3 to 5 days). If no profit is realized within this window, the trade is closed at market price.
+   - **Volatility Filter**: The strategy strictly excludes periods where VIX is falling. Trades taken during VIX contractions are disallowed to prevent capturing false signals in low-volatility "trap" environments.
+
+4. **Required Indicators**:
+   - **VIX (CBOE Volatility Index)**: Used as a binary on/off switch (Up vs. Down) and for scaling risk parameters.
+   - **RSI (14-period)**: Calculated on the price series to detect divergence.
+   - **Price Action**: Raw OHLC data to identify swing highs and lows for divergence confirmation.
+   - **ATR (14-period)**: Calculated on the price series to determine dynamic stop-loss distances and profit targets.

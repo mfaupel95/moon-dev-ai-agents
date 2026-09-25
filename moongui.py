@@ -37,6 +37,52 @@ REPO = Path(__file__).resolve().parent
 AGENTS_DIR = REPO / "src" / "agents"
 PDF_DIR = REPO.parent / "Moon-Dev-Code" / "strategy_pdfs"
 VENV_PY = REPO / ".venv" / "Scripts" / "python.exe"
+
+def wurzel_env() -> dict:
+    """.env in der Repo-Wurzel als Woerterbuch (Werte werden nie ausgegeben).
+
+    Die Kindprozesse brauchen diese Werte auch dann, wenn das Fenster selbst
+    ohne .env gestartet wurde: `load_dotenv()` im Kind sucht vom Modul aus
+    aufwaerts und findet `src/.env` VOR der Wurzel - dort fehlt etwa
+    DEEPSEEK_KEY, und der Agent stirbt beim Aufbau des Clients.
+    """
+    werte: dict = {}
+    pfad = REPO / ".env"
+    if not pfad.is_file():
+        return werte
+    for zeile in pfad.read_text(encoding="utf-8", errors="replace").splitlines():
+        zeile = zeile.strip()
+        if not zeile or zeile.startswith("#") or "=" not in zeile:
+            continue
+        schluessel, _, wert = zeile.partition("=")
+        schluessel = schluessel.strip()
+        if schluessel and schluessel not in werte:
+            werte[schluessel] = wert.strip().strip('"').strip("'")
+    return werte
+
+
+def kind_umgebung() -> dict:
+    """Umgebung fuer die gestarteten Agenten.
+
+    Drei Dinge, die jeder Start braucht und die die Prozessumgebung des
+    Fensters nicht mitbringt:
+    - **UTF-8**: ohne PYTHONIOENCODING stirbt jeder Agent in der ersten
+      Sekunde an einem Emoji im print() (`UnicodeEncodeError: 'charmap'`).
+    - **Lokales Ollama**: der Hausstandard, kein Schluessel noetig.
+    - **Werte der Wurzel-.env**: nur gesetzt, wo sonst nichts steht.
+    """
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+    env["OLLAMA_MODEL"] = "qwen35-8k"
+    # NICHT Ollamas eigenes /v1: bei Denk-Modellen landet das ganze Budget im
+    # reasoning-Teil, content kommt leer zurueck (gemessen 25.09.2026: 0 Zeichen,
+    # finish=length) und der Agent wertet das als Fehlschlag. Die Haus-Bruecke
+    # ruft nativ mit think:false (3603 Zeichen in 9 s, finish=stop).
+    env["OLLAMA_BASE_URL"] = "http://127.0.0.1:11499/v1"
+    for schluessel, wert in wurzel_env().items():
+        env.setdefault(schluessel, wert)
+    return env
 if not VENV_PY.exists():
     VENV_PY = Path(sys.executable)
 LOG_DIR = REPO / "moongui_logs"
@@ -807,9 +853,7 @@ class App:
             threading.Thread(target=_waiter, daemon=True).start()
             self._log(log_widget, f"■ {mod} wird beendet …")
             return
-        env = dict(os.environ)
-        env["OLLAMA_MODEL"] = "qwen35-8k"
-        env["OLLAMA_BASE_URL"] = "http://127.0.0.1:11434/v1"
+        env = kind_umgebung()
         logp = LOG_DIR / f"{mod}.log"
         with open(logp, "w", encoding="utf-8") as f:
             f.write(f"# {mod} gestartet {datetime.now():%Y-%m-%d %H:%M:%S}\n")

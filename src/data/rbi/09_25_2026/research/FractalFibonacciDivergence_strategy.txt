@@ -1,0 +1,29 @@
+STRATEGY_NAME: FractalFibonacciDivergence
+
+STRATEGY_DETAILS:
+This strategy combines the structural analysis of fractal patterns with the precise timing of Fibonacci retracement levels to identify high-probability reversal entries.
+
+1. **Key Strategy Components**:
+   - **Fractal Detection**: The core engine identifies "Self-Similar Price Patterns" by looking for specific candlestick formations (typically 5-candle patterns) where the middle candle's high is higher than the next two highs and lower than the previous two lows (for bullish fractals) or vice versa for bearish fractals.
+   - **Fibonacci Integration**: Instead of relying solely on the fractal formation, the strategy overlays the current price action onto a Fibonacci retracement tool (usually from the start of the preceding major swing low/high to the opposite end).
+   - **Divergence Logic**: An entry is only confirmed when a fractal forms *at* or *in the immediate proximity* of a key Fibonacci zone (e.g., 0.5, 0.618, or 0.786), indicating that the price is attempting to reverse while respecting the mathematical support/resistance of the prior trend.
+
+2. **Entry/Exit Rules**:
+   - **Entry Trigger**:
+     - *Bullish Entry*: A bullish 5-candle fractal completes, and the price simultaneously touches or breaks slightly above a key Fibonacci retracement level (e.g., 0.618) of the prior trend.
+     - *Bearish Entry*: A bearish 5-candle fractal completes, and the price simultaneously touches or breaks slightly below a key Fibonacci retracement level.
+   - **Stop Loss**: Placed just below the lowest wick of the fractal candle for long positions, or above the highest wick for short positions, to ensure the fractal pattern remains valid.
+   - **Take Profit**:
+     - *Target 1*: The next logical Fibonacci extension level (e.g., if entering at 0.618, target 1.272 or 1.618).
+     - *Target 2*: A trailing stop based on the fractal structure, closing the trade if the fractal pattern is invalidated by a new high/low.
+
+3. **Risk Management**:
+   - **Position Sizing**: Fixed risk per trade based on the distance between the entry price and the stop loss (max 1-2% of account equity per trade).
+   - **Trend Filter**: Only take long signals when the overall market trend (e.g., 200 EMA or 50-period MACD) is bullish, and only short signals when the overall trend is bearish. This filters out counter-trend fractals that lack momentum.
+   - **Max Daily Loss**: Limit the number of active trades or total daily exposure to prevent drawdowns during low-liquidity periods.
+
+4. **Required Indicators**:
+   - **Fractal Indicator**: To automate the detection of self-similar candlestick patterns (standard in most trading platforms).
+   - **Fibonacci Retracement Tool**: Manually applied or automated to draw levels from swing highs/lows.
+   - **Trend Filter**: An Exponential Moving Average (EMA) (e.g., 50 or 200 period) or MACD histogram to determine the primary market direction.
+   - **Volume**: To confirm the strength of the fractal reversal and the Fibonacci bounce.

@@ -1,0 +1,31 @@
+STRATEGY_NAME: AdaptiveKeltnerBreakout
+
+STRATEGY_DETAILS:
+This strategy leverages a combination of volatility expansion and price structure to identify strong trend continuations. By requiring the simultaneous occurrence of a bullish divergence and a break above the Keltner Channel upper band, the system filters out weak breakouts, ensuring that the move is supported by increasing market momentum. The inclusion of expanding Bollinger Bands serves as a volatility filter, confirming that the market is in a state of high energy before the trend is confirmed.
+
+Key Strategy Components:
+- **Volatility Expansion Filter**: Uses expanding Bollinger Bands to ensure the market is experiencing significant volatility, which often precedes strong trend moves.
+- **Trend Confirmation**: Relies on the Keltner Channel's upper band as the primary threshold for entry, indicating that price has moved sufficiently away from the moving average to suggest a new trend direction.
+- **Momentum Validation**: Incorporates bullish divergence analysis to confirm that selling pressure is weakening while prices are still declining, setting the stage for a reversal or continuation.
+
+Entry Rules:
+1. **Condition A (Volatility)**: Bollinger Bands must be visibly expanding (upper and lower bands widening), indicating rising volatility.
+2. **Condition B (Divergence)**: A clear bullish divergence must be detected on the price chart (price makes a lower low, while the indicator makes a higher low).
+3. **Trigger**: Enter a **Long** position only when the price candle closes definitively above the upper Keltner Channel.
+4. **Confluence**: All three conditions must be met simultaneously; if the breakout occurs without the divergence or volatility expansion, the trade is invalidated.
+
+Exit Rules:
+1. **Primary Exit**: Exit the long position immediately if the price closes below the Keltner Channel's upper band (or the middle Keltner line, depending on strictness), indicating a failure of the trend or the start of a correction.
+2. **Stop Loss**: A dynamic stop loss is implied by the volatility bands; if the price drops back inside the Keltner Channel or breaches the lower Bollinger Band due to a rapid correction, the position should be closed to protect capital.
+3. **Trailing Stop**: Once the trend is established, the stop loss can be moved up to track the lower Bollinger Band or the Keltner Channel lower band to lock in profits as the trend extends.
+
+Risk Management:
+- **Position Sizing**: Limit exposure to a fixed percentage of capital per trade (e.g., 1-2%) to manage the risk inherent in volatility breakouts.
+- **Timeframe Alignment**: Ensure the timeframe used for the divergence and channel analysis matches the timeframe of the Bollinger Bands to avoid conflicting signals.
+- **Volatility Check**: If the market is in a range-bound state (Bollinger Bands contracting), the strategy remains dormant to avoid false breakouts.
+
+Required Indicators:
+- **Keltner Channel**: Set with the default 20-period SMA and 2 standard deviations (or custom ATR multiplier) to define the channel boundaries.
+- **Bollinger Bands**: Set with the default 20-period SMA and 2 standard deviations to measure volatility expansion.
+- **Divergence Tool**: A built-in divergence indicator or manual identification of price vs. indicator highs/lows.
+- **Price Action**: Candlestick analysis to confirm the breakout closure above the channel.

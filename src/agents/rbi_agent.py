@@ -191,6 +191,7 @@ FOR THE PYTHON BACKTESTING LIBRARY USE BACKTESTING.PY AND SEND BACK ONLY THE COD
 ONLY SEND BACK CODE, NO OTHER TEXT.
 """
 
+
 DEBUG_PROMPT = """
 You are Moon Dev's Debug AI 🌙
 Fix technical issues in the backtest code WITHOUT changing the strategy logic.
@@ -281,12 +282,25 @@ except ImportError:
     Anthropic = None
     cprint("⚠️ Anthropic SDK not installed. Claude models will be unavailable. (Moon Dev note)", "yellow")
 from pathlib import Path
+
+try:
+    from src.agents.backtest_start import daten_pfad, interpreter
+except ImportError:  # direkt gestartet (python datei.py)
+    from backtest_start import daten_pfad, interpreter
 import threading
 import itertools
 import sys
 import hashlib  # Added for idea hashing
 from src.config import *  # Import config settings including AI_MODEL
 from src.models import model_factory
+
+# Der Datenpfad im Prompt war der Pfad des Autors (/Users/md/...).
+# Ohne diese Zeile schreibt jedes erzeugte Backtest-Skript den fremden
+# Pfad und stirbt beim Laden der Kurse.
+BACKTEST_PROMPT = BACKTEST_PROMPT.replace(
+    "/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv",
+    daten_pfad(),
+)
 
 # DeepSeek Configuration
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"

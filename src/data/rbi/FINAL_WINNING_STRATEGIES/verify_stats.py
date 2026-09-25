@@ -7,11 +7,12 @@ import pandas as pd
 import numpy as np
 from backtesting import Backtest
 import warnings
+from pathlib import Path
 warnings.filterwarnings('ignore')
 
 # Load data
 print("Loading data...")
-data_path = '/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv'
+data_path = str(Path(__file__).resolve().parents[1] / 'BTC-USD-15m.csv')
 data = pd.read_csv(data_path, parse_dates=['datetime'], index_col='datetime')
 data.columns = data.columns.str.strip().str.lower()
 data = data.drop(columns=[col for col in data.columns if 'unnamed' in col.lower()])

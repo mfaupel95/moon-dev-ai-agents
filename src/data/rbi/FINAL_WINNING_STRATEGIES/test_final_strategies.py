@@ -11,11 +11,12 @@ import sys
 import os
 from datetime import datetime
 import importlib.util
+from pathlib import Path
 
 warnings.filterwarnings('ignore')
 
 # 🌙 Data Loading Function (Standardized)
-data_path = '/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv'
+data_path = str(Path(__file__).resolve().parents[1] / 'BTC-USD-15m.csv')
 
 def load_btc_data(file_path):
     """Load and prepare BTC data with adaptive header detection"""

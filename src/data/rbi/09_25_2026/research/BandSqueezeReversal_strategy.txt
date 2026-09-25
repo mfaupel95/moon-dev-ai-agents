@@ -1,0 +1,22 @@
+STRATEGY_NAME: BandSqueezeReversal
+
+STRATEGY_DETAILS:
+
+**1. Key Strategy Components**
+This strategy operates on the core principle of mean reversion within a Bollinger Band (BB) structure. Unlike standard breakout strategies, this approach identifies "false" breakouts or oversold conditions where the volatility contraction (the distance between the lower band and the 20-period Simple Moving Average - SMA) is significant but the price has not yet snapped back. The strategy specifically targets the scenario where the lower Bollinger Band is positioned *above* the 20-period SMA, indicating that the recent price action has pulled back significantly within the upper half of the volatility envelope, suggesting a potential reversal point or a deep pullback that is about to be corrected.
+
+**2. Entry/Exit Rules**
+*   **Entry Condition:** The trade is initiated when the Lower Bollinger Band crosses *above* the 20-period Moving Average (SMA) on the chosen time frame. This confirms that the price has oversold itself relative to the recent average volatility range. A trigger candle (e.g., a hammer or bullish engulfing) closing above the lower band confirmation is preferred to ensure the momentum has shifted back toward the mean.
+*   **Exit Condition (Stop Loss):** A strict risk management stop loss is placed at 2 times the Average True Range (ATR) calculated over the lookback period (e.g., 20 or 14 periods). This acts as a hard limit to prevent significant losses if the mean-reversion thesis fails and the price continues to trend downwards.
+*   **Exit Condition (Take Profit/Re-test):** The strategy specifically aims to capture a "re-test opportunity." The target is not necessarily a fixed percentage, but rather the price retracing back to touch or near the 20-period SMA (the mean). Once the price touches the SMA and shows signs of rejection, the trade is closed, or the stop loss is moved to breakeven to lock in the mean-reversion profit.
+
+**3. Risk Management**
+*   **Volatility Adjustment:** The use of a 2x ATR stop loss ensures that the risk taken is proportional to the current market volatility. In high-volatility environments, the stop widens to avoid being stopped out by normal noise; in low-volatility environments, the stop tightens.
+*   **Position Sizing:** Capital allocation should be inversely proportional to the ATR value to maintain a consistent dollar risk per trade regardless of the asset's volatility.
+*   **Failure Scenario:** If the price closes decisively below the 20-period SMA despite the lower band being above it, the strategy should be considered invalid, and the 2x ATR stop loss must be executed immediately.
+
+**4. Required Indicators**
+*   **Bollinger Bands:** Standard settings (20-period SMA, 2.0 standard deviations) to identify the volatility envelope and the specific "lower band above mean" condition.
+*   **20-period Simple Moving Average (SMA):** Used as the baseline for the mean reversion logic.
+*   **Average True Range (ATR):** Specifically a 14-period or 20-period ATR, used exclusively for calculating the 2x stop-loss distance to ensure dynamic risk management.
+*   *(Optional but Recommended)* **Volume:** To confirm that the move back to the mean is supported by increased participation.

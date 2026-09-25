@@ -31,6 +31,13 @@ from termcolor import cprint
 import threading
 import itertools
 import sys
+
+try:
+    from src.agents.backtest_start import daten_pfad, interpreter
+except ImportError:  # direkt gestartet (python datei.py)
+    from backtest_start import daten_pfad, interpreter
+
+REPO = __import__('pathlib').Path(__file__).resolve().parents[2]
 from dotenv import load_dotenv
 
 # Load environment variables FIRST
@@ -43,7 +50,7 @@ AI_MAX_TOKENS = 4000
 
 # Import model factory with proper path handling
 import sys
-sys.path.append('/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading')
+sys.path.append(str(REPO))
 
 try:
     from src.models import model_factory
@@ -213,6 +220,12 @@ FOR THE PYTHON BACKTESTING LIBRARY USE BACKTESTING.PY AND SEND BACK ONLY THE COD
 ONLY SEND BACK CODE, NO OTHER TEXT.
 """
 
+# Datenpfad im Prompt: der Pfad des Autors wird ersetzt (siehe backtest_start.py)
+BACKTEST_PROMPT = BACKTEST_PROMPT.replace(
+    "/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi/BTC-USD-15m.csv",
+    daten_pfad(),
+)
+
 DEBUG_PROMPT = """
 You are Moon Dev's Debug AI 🌙
 Fix technical issues in the backtest code WITHOUT changing the strategy logic.
@@ -321,10 +334,8 @@ def execute_backtest(file_path: str, strategy_name: str) -> dict:
         raise FileNotFoundError(f"File not found: {file_path}")
     
     # Build the command
-    cmd = [
-        "conda", "run", "-n", CONDA_ENV,
-        "python", str(file_path)
-    ]
+    # Ausfuehrung ohne conda: siehe src/agents/backtest_start.py
+    cmd = interpreter(file_path)
     
     start_time = datetime.now()
     
