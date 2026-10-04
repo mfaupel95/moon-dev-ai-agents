@@ -296,7 +296,14 @@ def rbi_kennzahlen():
     if not RBI_DIR.exists():
         return {"tage_ordner": 0, "backtests": 0, "ideen": 0, "agenten_md": 0}
     tage = [p for p in RBI_DIR.iterdir() if p.is_dir() and p.name[0].isdigit()]
-    bt = sum(1 for _ in RBI_DIR.rglob("*_BT.py")) + sum(1 for _ in RBI_DIR.rglob("*_bt.py"))
+    # EINE Menge statt zwei Globs: Windows ist case-insensitiv, also
+    # liefern `*_BT.py` und `*_bt.py` dieselben Dateien. Addiert ergab das
+    # 2858 statt 1429 (Faktor 2,00, gemessen am 04.10.2026) - eine falsche
+    # Zahl in einem Fenster, das Trader-Werkzeuge zaehlt. Als `set` ist die
+    # Doppelerfassung nicht moeglich, auch dann nicht, wenn jemand auf einem
+    # case-sensitiven Dateisystem arbeitet.
+    bt = len({p for pat in ("*_BT.py", "*_bt.py")
+              for p in RBI_DIR.rglob(pat)})
     ideen = 0
     ip = RBI_DIR / "ideas.txt"
     if ip.exists():
@@ -347,6 +354,26 @@ def rbi_idee_anhaengen(text):
 
 
 # ---------------------------------------------------------------- App
+def _handle_schliessen(handle, versuche=3):
+    """Ein Log-Handle schliessen, auch wenn das Kind noch schreibt.
+
+    `subprocess.terminate()` ist asynchron: das Kind kann beim Schliessen
+    noch schreiben, und Python meldet dann einen Fehler. Ein Retry mit
+    kurzer Pause ist hier richtig - der Handle wird beim Beenden des
+    Fensters ohnehin nicht mehr gebraucht, und ein liegengebliebener Handle
+    waere genau das Leck, das hier abgestellt wird.
+    """
+    for i in range(versuche):
+        try:
+            handle.close()
+            return True
+        except Exception:                                # noqa: BLE001
+            if i + 1 >= versuche:
+                return False
+            threading.Event().wait(0.25 * (i + 1))
+    return False
+
+
 class App:
     def __init__(self, root: tk.Tk):
         self.root = root
@@ -423,27 +450,39 @@ class App:
         self.tree.pack(fill="both", expand=True, padx=8, pady=4)
         self.tree.bind("<Double-Button-1>", self._tree_click)
 
-        mid = ttk.Frame(tab)
+        # Zwei Zeilen statt einer. Gemessen am 04.10.2026 (TkFont): die
+        # Reihe war 1808 px breit bei 1164 px Fenstermenge, das
+        # Passphrase-Feld lag ausserhalb des Fensters - bei OKX war die
+        # Order damit nicht ausfuehrbar, ohne das Fenster zu verbreitern.
+        #
+        # Die Aufteilung ist eine Entscheidung: Instrument, Seite und Menge
+        # gehoeren zur Order, die drei Zugangsdaten nicht. Sie stehen in
+        # einer zweiten Zeile unter einem eigenen Rahmen - sichtbar, weil
+        # ein Feld, das man nicht sieht, auch nicht eintraegt.
+        mid = ttk.Labelframe(tab, text="Order — Klick eine Zeile uebernimmt das Instrument")
         mid.pack(fill="x", padx=8, pady=4)
-        ttk.Label(mid, text="Klicke eine Zeile -> Instrument übernehmen. Order:").pack(side="left")
+        mid1 = ttk.Frame(mid)
+        mid1.pack(fill="x", padx=6, pady=4)
         self.order_inst = tk.StringVar(value="BTC-USDT")
-        self.order_inst_e = ttk.Entry(mid, textvariable=self.order_inst, width=16)
-        self.order_inst_e.pack(side="left", padx=6)
-        ttk.Label(mid, text="Seite:").pack(side="left")
+        self.order_inst_e = ttk.Entry(mid1, textvariable=self.order_inst, width=16)
+        self.order_inst_e.pack(side="left")
+        ttk.Label(mid1, text="Seite:").pack(side="left", padx=(12, 2))
         self.order_side = tk.StringVar(value="buy")
-        ttk.Combobox(mid, textvariable=self.order_side, values=("buy", "sell"), width=6, state="readonly").pack(side="left")
-        ttk.Label(mid, text="Menge:").pack(side="left", padx=(12, 2))
+        ttk.Combobox(mid1, textvariable=self.order_side, values=("buy", "sell"), width=6, state="readonly").pack(side="left")
+        ttk.Label(mid1, text="Menge:").pack(side="left", padx=(12, 2))
         self.order_qty = tk.StringVar(value="0.0001")
-        ttk.Entry(mid, textvariable=self.order_qty, width=10).pack(side="left")
-        ttk.Label(mid, text="Key:").pack(side="left", padx=(12, 2))
-        self.order_key = ttk.Entry(mid, width=26)
-        self.order_key.pack(side="left")
-        ttk.Label(mid, text="Secret:").pack(side="left", padx=(12, 2))
-        self.order_secret = ttk.Entry(mid, width=26, show="*")
-        self.order_secret.pack(side="left")
-        ttk.Label(mid, text="Passphrase (OKX):").pack(side="left", padx=(12, 2))
-        self.order_pass = ttk.Entry(mid, width=12, show="*")
-        self.order_pass.pack(side="left")
+        ttk.Entry(mid1, textvariable=self.order_qty, width=10).pack(side="left")
+        mid2 = ttk.Frame(mid)
+        mid2.pack(fill="x", padx=6, pady=(0, 4))
+        ttk.Label(mid2, text="Key:").pack(side="left")
+        self.order_key = ttk.Entry(mid2, width=26)
+        self.order_key.pack(side="left", padx=(4, 0))
+        ttk.Label(mid2, text="Secret:").pack(side="left", padx=(12, 2))
+        self.order_secret = ttk.Entry(mid2, width=26, show="*")
+        self.order_secret.pack(side="left", padx=(4, 0))
+        ttk.Label(mid2, text="Passphrase (OKX):").pack(side="left", padx=(12, 2))
+        self.order_pass = ttk.Entry(mid2, width=14, show="*")
+        self.order_pass.pack(side="left", padx=(4, 0))
 
         arm = ttk.Frame(tab)
         arm.pack(fill="x", padx=8, pady=2)
@@ -612,9 +651,26 @@ class App:
             return
         rbi_idee_anhaengen(text)
         self.rbi_idee_entry.delete(0, "end")
-        self._rbi_kz = rbi_kennzahlen()
-        self.rbi_kz_label.configure(text=self._rbi_kz_text())
+        # Die Kennzahlen NICHT im Hauptthread: zwei `rglob` ueber
+        # `src/data/rbi`, gemessen kalt 290 + 292 ms. Im Hauptthread fror das
+        # Fenster fuer eine halbe Sekunde ein - bei einem Klick, der nur
+        # eine Idee anhaengen soll. Der Weg ist derselbe wie bei den
+        # Kursen: rechnen im Thread, Antwort in `work`, anzeigen in `_poll`.
+        self.rbi_kz_label.configure(text="Kennzahlen werden gezählt …")
+        threading.Thread(target=self._rbi_kz_holen, daemon=True).start()
         self._log(self.rbi_log, f"➕ Idee angehängt: {text[:80]}")
+
+    def _rbi_kz_holen(self):
+        """Die Kennzahlen zaehlen und durch die Queue schicken.
+
+        Ein Fehler darf den Thread nicht beenden - sonst bliebe die Anzeige
+        dauerhaft auf "wird gezählt". Deshalb haengt die Antwort auch im
+        Fehlerfall an die Queue.
+        """
+        try:
+            self.work.put(("rbi_kz", rbi_kennzahlen()))
+        except Exception as e:                            # noqa: BLE001
+            self.work.put(("rbi_kz_err", str(e)))
 
     def _toggle_rbi(self, mod):
         self._toggle_agent(mod, log_widget=self.rbi_log)
@@ -844,11 +900,22 @@ class App:
     def _toggle_agent(self, mod, log_widget=None):
         log_widget = log_widget or self.agent_log
         if mod in self.threads:
-            p, logp = self.threads.pop(mod)
+            # Drei Eintraege: Prozess, Logpfad, Log-Handle. Das Entpacken
+            # laeuft ueber Indizes, damit ein Eintrag ohne Handle (aelterer
+            # Stand) nicht den Stopp des Agenten verhindert.
+            eintrag = self.threads.pop(mod)
+            p, logp = eintrag[0], eintrag[1]
+            handle = eintrag[2] if len(eintrag) > 2 else None
             try:
                 p.terminate()
             except Exception:
                 pass
+            if handle is not None:
+                # `terminate()` ist asynchron: das Kind kann beim
+                # Schliessen noch schreiben. Der Retry wartet kurz und
+                # laesst dem Kind seine letzte Zeile.
+                threading.Timer(0.6, _handle_schliessen,
+                                args=(handle,)).start()
 
             def _waiter():
                 try:
@@ -871,9 +938,17 @@ class App:
         logp = LOG_DIR / f"{mod}.log"
         with open(logp, "w", encoding="utf-8") as f:
             f.write(f"# {mod} gestartet {datetime.now():%Y-%m-%d %H:%M:%S}\n")
+        # Der Log-Handle bleibt offen, solange das Kind laeuft - das ist der
+        # Sinn von `stdout=` an Popen. Er wird deshalb ZUSAMMEN mit dem
+        # Prozess gemerkt und beim Stoppen wie in `_poll` geschlossen;
+        # vorher blieb er bis zum Fensterschluss offen (gemessen 04.10.2026:
+        # 27 Handles in moongui_logs, einer je Start/Stop-Zyklus) - und der
+        # `with`-Block oberhalb schrieb beim naechsten Start darueber weg,
+        # bevor jemand das Log des letzten Laufs gelesen hatte.
+        handle = open(logp, "ab")
         p = subprocess.Popen(
             [str(VENV_PY), "-u", "-m", f"src.agents.{mod}"],
-            cwd=str(REPO), env=env, stdout=open(logp, "ab"), stderr=subprocess.STDOUT,
+            cwd=str(REPO), env=env, stdout=handle, stderr=subprocess.STDOUT,
         )
         # T-262: Das Kind in den gemeinsamen Ordner eintragen. Ohne das
         # beendet der Waisenputzer des Haus-Treibers jeden GUI-Agenten nach
@@ -881,7 +956,7 @@ class App:
         # wird die PID des KINDES (nicht die der GUI) - der Aufruf nimmt
         # darum das Argument. Der ganze Baum darunter wird mitgeschuetzt.
         registriere(p.pid)
-        self.threads[mod] = [p, logp]
+        self.threads[mod] = [p, logp, handle]
         self._log(log_widget, f"▶ {mod} gestartet (PID {p.pid}) — Log: {logp}")
 
     # ---------------- LLM
@@ -926,13 +1001,24 @@ class App:
                     self._log(self.boersen_log, f"❌ {msg[1]}: {msg[2]}")
                 elif kind == "sol":
                     self.wallet_status.configure(text=msg[1])
+                elif kind == "rbi_kz":
+                    self._rbi_kz = msg[1]
+                    self.rbi_kz_label.configure(text=self._rbi_kz_text())
+                elif kind == "rbi_kz_err":
+                    self.rbi_kz_label.configure(
+                        text="Kennzahlen nicht lesbar: %s" % msg[1][:60])
+                    self._log(self.rbi_log, f"⚠ Kennzahlen: {msg[1][:120]}")
         except queue.Empty:
             pass
         # Agent-Prozesse ueberwachen
         for mod in list(self.threads.keys()):
-            p, logp = self.threads[mod]
+            eintrag = self.threads[mod]
+            p, logp = eintrag[0], eintrag[1]
             if p.poll() is not None:
                 del self.threads[mod]
+                handle = eintrag[2] if len(eintrag) > 2 else None
+                if handle is not None:
+                    _handle_schliessen(handle)
                 self._log(self.agent_log, f"■ {mod} beendet (Code {p.returncode}) — Log: {logp}")
         self.root.after(150, self._poll)
 
