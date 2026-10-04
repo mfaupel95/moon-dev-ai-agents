@@ -106,6 +106,12 @@ from termcolor import colored, cprint
 import random
 import src.config as config
 
+# Zugriffsschicht mit 429-Backoff (T-261). Ohne sie verarbeitete der
+# Agent die LEEREN Antworten des Rate-Limits weiter und speicherte
+# Empfehlungen ohne Marktdaten.
+from src.agents.coingecko_zugriff import Zugriff, hat_marktdaten
+from src.agents.zyklus_watchdog import begrenze_zyklus
+
 # Load environment variables
 load_dotenv()
 
@@ -129,6 +135,13 @@ COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY")
 BASE_URL = "https://api.coingecko.com/api/v3" if not COINGECKO_API_KEY else "https://pro-api.coingecko.com/api/v3"
 RESULTS_DIR = Path("src/data/coingecko_results")
 DELAY_BETWEEN_REQUESTS = 12  # Seconds between API calls (oeffentliche API: Rate-Limit)
+# GEMESSEN 04.10.2026: die oeffentliche API laesst ~5 Aufrufe/Minute zu, der
+# Zyklus braucht aber 2 + 2 je Coin. 12 s zwischen zwei Coins ist zu wenig;
+# der Zugriff wartet selbst (coingecko_zugriff), dieser Wert gilt nur fuer
+# den Abstand zwischen zwei vollstaendigen Coin-Abrufen.
+DELAY_BETWEEN_REQUESTS = 15
+LLM_FRIST_S = 120           # s: eigener Timeout fuer den Modellaufruf
+MAX_COINS = 3               # je Lauf; 6 Coins = 14 Aufrufe > Limit
 
 
 def llm_lokal(prompt):
@@ -148,9 +161,13 @@ def llm_lokal(prompt):
     }).encode("utf-8")
     anfrage = urllib.request.Request(basis + "/chat", data=koerper,
                                      headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(anfrage, timeout=180) as antwort:
+    with urllib.request.urlopen(anfrage, timeout=LLM_FRIST_S) as antwort:
         daten = json.loads(antwort.read().decode("utf-8", "replace"))
-    return (daten.get("message") or {}).get("content") or ""
+    inhalt = (daten.get("message") or {}).get("content") or ""
+    if not inhalt.strip():
+        raise RuntimeError("leere Antwort von %s (Modell %s) - "
+                           "das Modell denkt nur in reasoning" % (basis, OLLAMA_MODEL))
+    return inhalt
 
 # Output files
 TOP_GAINERS_LOSERS_FILE = RESULTS_DIR / "top_gainers_losers.csv"
@@ -192,6 +209,11 @@ class NewOrTopAgent:
         }
         if COINGECKO_API_KEY:
             self.headers["x-cg-pro-api-key"] = COINGECKO_API_KEY
+        # Eine Instanz fuer den ganzen Zyklus: sie zaehlt Aufrufe und
+        # Rate-Limits und befolgt Retry-After (T-261).
+        self.zugriff = Zugriff(
+            BASE_URL, COINGECKO_API_KEY,
+            melder=lambda t: print_fancy(t, 'yellow', 'on_grey', ERROR_EMOJIS))
         
         # Initialize AI client based on model
         if OLLAMA_MODEL:
@@ -221,21 +243,20 @@ class NewOrTopAgent:
         """Get only top gainers (positive performers)"""
         try:
             print_spinner("🚀 Fetching top gainers...", ROCKET_SEQUENCE, 'cyan', 'on_blue')
-            # Oeffentlicher Endpunkt statt Pro-API (16.09.2026)
-            response = requests.get(
-                f"{BASE_URL}/coins/markets",
-                headers=self.headers,
-                params={
+            # Oeffentlicher Endpunkt statt Pro-API (16.09.2026).
+            # Der Zugriff befolgt 429 mit Retry-After; kommt nichts, wird
+            # der Zyklus verworfen statt mit leeren Daten weiterzulaufen.
+            data = self.zugriff.hole(
+                "/coins/markets",
+                {
                     "vs_currency": "usd",
                     "order": "market_cap_desc",
                     "per_page": "100",
                     "sparkline": "false",
                     "price_change_percentage": "24h"
-                }
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
+                })
+
+            if data is not None:
                 
                 # Nur Gewinner, nach 24h-Aenderung sortiert; head(3) wegen
                 # Rate-Limit der oeffentlichen API (Pro-Key hebt es auf)
@@ -269,7 +290,9 @@ class NewOrTopAgent:
                     return pd.DataFrame()
                 
             else:
-                print_fancy(f"Error fetching top gainers: {response.text}", 'white', 'on_red', ERROR_EMOJIS)
+                print_fancy("Top gainers: keine Daten (Rate-Limit oder "
+                            "Netzfehler) - Zyklus verworfen (T-261)",
+                            'white', 'on_red', ERROR_EMOJIS)
                 return pd.DataFrame()
                 
         except Exception as e:
@@ -282,19 +305,16 @@ class NewOrTopAgent:
             print_spinner("Scanning for new coins...", MOON_PHASES, 'yellow', 'on_blue')
             # "Neue Coins" existiert nur in der Pro-API; oeffentlicher Ersatz:
             # die kleinsten 100 nach Marktkapitalisierung (16.09.2026)
-            response = requests.get(
-                f"{BASE_URL}/coins/markets",
-                headers=self.headers,
-                params={
+            data = self.zugriff.hole(
+                "/coins/markets",
+                {
                     "vs_currency": "usd",
                     "order": "market_cap_asc",
                     "per_page": "100",
                     "sparkline": "false"
-                }
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
+                })
+
+            if data is not None:
                 df = pd.DataFrame(data)
                 df = df.head(3)
                 df['timestamp'] = datetime.now().isoformat()
@@ -306,7 +326,9 @@ class NewOrTopAgent:
                 return df
                 
             else:
-                print_fancy(f"Error fetching new coins: {response.text}", 'white', 'on_red', ERROR_EMOJIS)
+                print_fancy("New coins: keine Daten (Rate-Limit oder "
+                            "Netzfehler) - Zyklus verworfen (T-261)",
+                            'white', 'on_red', ERROR_EMOJIS)
                 return pd.DataFrame()
                 
         except Exception as e:
@@ -314,82 +336,79 @@ class NewOrTopAgent:
             return pd.DataFrame()
             
     def get_coin_data(self, coin_id: str) -> Dict:
-        """Get detailed data for a coin"""
+        """Detaildaten eines Coins - oder {}.
+
+        LEERES DICT heisst "keine Daten": der Aufrufer ueberspringt den Coin
+        und speichert NICHTS. Der alte Code hat nach einem 429 noch einmal
+        versucht, die leere Antwort aber als Erfolg behandelt - daraus kamen
+        die gespeicherten Analysen ohne Marktdaten (T-261).
+        """
         try:
             print_spinner(f"Analyzing {coin_id}...", ROCKET_SEQUENCE, 'yellow', 'on_blue')
-            
-            # Get OHLCV data first
-            ohlcv_response = requests.get(
-                f"{BASE_URL}/coins/{coin_id}/ohlc",
-                headers=self.headers,
-                params={"vs_currency": "usd", "days": "1"}
-            )
-            
-            # Get main coin data
-            response = requests.get(
-                f"{BASE_URL}/coins/{coin_id}",
-                headers=self.headers,
-                params={
+
+            # OHLCV und Hauptdaten: jeder Zugriff mit 429-Backoff. Fehlt eins,
+            # wird der Coin uebersprungen - ein OHLCV-ohne-Kurs (oder umgekehrt)
+            # waere eine halbe Wahrheit im Prompt.
+            ohlcv_data = self.zugriff.hole(
+                f"/coins/{coin_id}/ohlc",
+                {"vs_currency": "usd", "days": "1"})
+            if ohlcv_data is None:
+                print_fancy(f"{coin_id}: OHLCV nicht abrufbar - Coin "
+                            f"uebersprungen (T-261)", 'white', 'on_red', ERROR_EMOJIS)
+                return {}
+
+            coin_data = self.zugriff.hole(
+                f"/coins/{coin_id}",
+                {
                     "localization": False,
                     "tickers": True,
                     "market_data": True,
                     "community_data": True,
                     "developer_data": False  # No longer needed
-                }
-            )
-            
-            if 429 in (response.status_code, ohlcv_response.status_code):
-                time.sleep(15)  # Rate-Limit der oeffentlichen API; einmal neu versuchen
-                ohlcv_response = requests.get(
-                    f"{BASE_URL}/coins/{coin_id}/ohlc",
-                    headers=self.headers,
-                    params={"vs_currency": "usd", "days": "1"}
-                )
-                response = requests.get(
-                    f"{BASE_URL}/coins/{coin_id}",
-                    headers=self.headers,
-                    params={
-                        "localization": False,
-                        "tickers": True,
-                        "market_data": True,
-                        "community_data": True,
-                        "developer_data": False
-                    }
-                )
-            
-            if response.status_code == 200 and ohlcv_response.status_code == 200:
-                coin_data = response.json()
-                ohlcv_data = ohlcv_response.json()
-                
-                # Convert OHLCV to DataFrame without printing
-                if ohlcv_data and len(ohlcv_data) > 0:
-                    ohlcv_df = pd.DataFrame(ohlcv_data, columns=['timestamp', 'open', 'high', 'low', 'close'])
-                    latest_ohlcv = ohlcv_df.iloc[-1]
-                    
-                    # Create market data DataFrame
-                    market_data = {
-                        'price': coin_data.get('market_data', {}).get('current_price', {}).get('usd', 0),
-                        'open': latest_ohlcv['open'],
-                        'high': latest_ohlcv['high'],
-                        'low': latest_ohlcv['low'],
-                        'close': latest_ohlcv['close'],
-                        'volume': coin_data.get('market_data', {}).get('total_volume', {}).get('usd', 0),
-                        'market_cap_rank': coin_data.get('market_cap_rank', 'N/A'),
-                        'change_24h': coin_data.get('market_data', {}).get('price_change_percentage_24h', 0),
-                        'change_7d': coin_data.get('market_data', {}).get('price_change_percentage_7d', 0),
-                        'change_30d': coin_data.get('market_data', {}).get('price_change_percentage_30d', 0)
-                    }
-                    
-                    market_df = pd.DataFrame([market_data])
-                    coin_data['market_data_df'] = market_df
-                    coin_data['ohlcv_df'] = ohlcv_df
-                    
-                print_fancy(f"✨ Intel gathered on {coin_id}!", 'green', 'on_grey', SUCCESS_EMOJIS)
-                return coin_data
-            else:
-                print_fancy(f"Error fetching coin data: {response.text}", 'white', 'on_red', ERROR_EMOJIS)
+                })
+            if coin_data is None:
+                print_fancy(f"{coin_id}: Coin-Daten nicht abrufbar - Coin "
+                            f"uebersprungen (T-261)", 'white', 'on_red', ERROR_EMOJIS)
+                return {}
+
+            # ECHTHEITSWEG: ohne Kurs gibt es keine Analyse (T-261).
+            if not hat_marktdaten(coin_data):
+                print_fancy(f"{coin_id}: Antwort ohne Kurs - Coin uebersprungen (T-261)",
+                            'white', 'on_red', ERROR_EMOJIS)
                 return {}
                 
+            # Ohne OHLCV-Zeilen gibt es kein DataFrame - und ohne DataFrame
+            # gibt es keine Analyse. Beides wird hier entschieden, nicht
+            # weiter oben (T-261).
+            if not ohlcv_data:
+                print_fancy(f"{coin_id}: OHLCV leer - Coin uebersprungen (T-261)",
+                            'white', 'on_red', ERROR_EMOJIS)
+                return {}
+
+            ohlcv_df = pd.DataFrame(ohlcv_data,
+                                    columns=['timestamp', 'open', 'high', 'low', 'close'])
+            latest_ohlcv = ohlcv_df.iloc[-1]
+            md = coin_data.get('market_data') or {}
+
+            market_data = {
+                'price': (md.get('current_price') or {}).get('usd'),
+                'open': latest_ohlcv['open'],
+                'high': latest_ohlcv['high'],
+                'low': latest_ohlcv['low'],
+                'close': latest_ohlcv['close'],
+                'volume': (md.get('total_volume') or {}).get('usd', 0),
+                'market_cap_rank': coin_data.get('market_cap_rank', 'N/A'),
+                'change_24h': md.get('price_change_percentage_24h', 0),
+                'change_7d': md.get('price_change_percentage_7d', 0),
+                'change_30d': md.get('price_change_percentage_30d', 0)
+            }
+
+            coin_data['market_data_df'] = pd.DataFrame([market_data])
+            coin_data['ohlcv_df'] = ohlcv_df
+
+            print_fancy(f"✨ Intel gathered on {coin_id}!", 'green', 'on_grey', SUCCESS_EMOJIS)
+            return coin_data
+
         except Exception as e:
             print_fancy(f"Error: {str(e)}", 'white', 'on_red', ERROR_EMOJIS)
             return {}
@@ -437,8 +456,13 @@ class NewOrTopAgent:
             
             print_fancy("🧠 AI Agent Processing...", 'yellow', 'on_blue', SPINNER_EMOJIS)
             
-            # Get AI response
-            if "deepseek" in AI_MODEL.lower() or OLLAMA_MODEL:
+            # Get AI response.
+            # ACHTUNG (T-261): die alte Bedingung war
+            # `if "deepseek" in AI_MODEL.lower() or OLLAMA_MODEL:` - OLLAMA_MODEL
+            # ist aber ein String, der auch None sein kann; im Betrieb ist die
+            # Bedingung immer wahr, der tote Anthropic-Zweig blieb erhalten.
+            # Massgeblich ist der WEG, nicht der Modellname.
+            if OLLAMA_MODEL:
                 # Lokal: native Ollama-API - /v1 liefert leeren content
                 analysis = llm_lokal(prompt)
             else:
@@ -481,13 +505,25 @@ class NewOrTopAgent:
             print_fancy(f"Error in AI analysis: {str(e)}", 'white', 'on_red', ERROR_EMOJIS)
             return "Error in analysis"
             
-    def extract_recommendation(self, analysis: str) -> str:
-        """Extract BUY/SELL/DO NOTHING from analysis"""
+    def extract_recommendation(self, analysis: str) -> str | None:
+        """BUY/SELL/DO NOTHING aus dem Text - oder None.
+
+        None unterscheidet "das Modell sagt: nichts tun" (DO NOTHING, ein
+        echtes Urteil) von "es kam kein Urteil zustande" (T-261). Vorher
+        gab es beides als DO NOTHING zurueck, und jeder Timeout landete
+        als scheinbar gueltige Empfehlung in der CSV.
+        """
+        if not analysis or analysis.startswith("Error"):
+            return None
         if "RECOMMENDATION: BUY" in analysis:
             return "BUY"
         elif "RECOMMENDATION: SELL" in analysis:
             return "SELL"
-        return "DO NOTHING"
+        elif "RECOMMENDATION: DO NOTHING" in analysis:
+            return "DO NOTHING"
+        # Antwort ohne die Kennung: das Modell hat die Vorgabe nicht beachtet.
+        # Das ist KEIN Urteil.
+        return None
         
     def save_analysis(self, result: Dict):
         """Save a single analysis result to CSV"""
@@ -526,6 +562,12 @@ class NewOrTopAgent:
                 if coin_data:
                     analysis = self.analyze_coin(coin_data, "Top gainer")
                     recommendation = self.extract_recommendation(analysis)
+                    if recommendation is None:
+                        # KEIN Urteil (Timeout/leere Antwort) - nicht speichern.
+                        # Sonst stehen Empfehlungen in der CSV, die keine sind
+                        # (T-261).
+                        time.sleep(DELAY_BETWEEN_REQUESTS)
+                        continue
                     
                     result = {
                         'timestamp': datetime.now().isoformat(),
@@ -553,6 +595,9 @@ class NewOrTopAgent:
                 if coin_data:
                     analysis = self.analyze_coin(coin_data, "Recently Added")
                     recommendation = self.extract_recommendation(analysis)
+                    if recommendation is None:
+                        time.sleep(DELAY_BETWEEN_REQUESTS)
+                        continue
                     
                     result = {
                         'timestamp': datetime.now().isoformat(),
@@ -590,17 +635,28 @@ class NewOrTopAgent:
             print_fancy(f"DO NOTHING: {summary.get('DO NOTHING', 0)} 🎯", 'yellow', 'on_grey')
             print_fancy("=" * 50, 'blue', 'on_white')
 
+ZYKLUS_GRENZE_S = 1800      # s: 30 min. Budget = MAX_COINS x (2 HTTP +
+                            # LLM 120 s) + Wartezeiten; x2 als Reserve.
+PAUSE_S = 3600              # s zwischen zwei Zyklen
+
+
 def main():
     """Main function to run the agent"""
     print_fancy("\n🌙 Moon Dev's Cosmic Token Analysis Starting! 🌟", 'white', 'on_magenta', SUCCESS_EMOJIS)
     agent = NewOrTopAgent()
+    print_fancy(f"Watchdog: {ZYKLUS_GRENZE_S} s je Zyklus (T-260) - haengt ein "
+               f"Aufruf, bricht der Prozess ab und der Treiber startet neu",
+               'cyan', 'on_grey')
     
     try:
         while True:
-            agent.run_analysis()
+            # Ohne Watchdog haengt ein eingefrorener Modell- oder
+            # HTTP-Aufruf den Agenten fuer immer (T-260).
+            with begrenze_zyklus("new_or_top", ZYKLUS_GRENZE_S):
+                agent.run_analysis()
             for emoji in MOON_PHASES:
                 print_fancy(f"{emoji} Waiting for next analysis cycle...", 'cyan', 'on_blue')
-                time.sleep(450)  # 450 * 8 = 3600 (1 hour)
+                time.sleep(PAUSE_S / len(MOON_PHASES))
             
     except KeyboardInterrupt:
         print_fancy("\n👋 Agent stopped by user - Moon Dev out! 🌙", 'white', 'on_magenta')

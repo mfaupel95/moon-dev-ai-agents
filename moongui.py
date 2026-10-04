@@ -32,6 +32,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
+# T-262: gemeinsamer Registrierungsordner mit dem Haus-Treiber. Die Datei
+# liegt im Repo-Root (nicht in src/agents), weil die GUI sie beim Start
+# braucht und nicht jeder Agent sie kennt.
+from moongui_reg import abmelde, registriere
+
 # ---------------------------------------------------------------- Pfade
 REPO = Path(__file__).resolve().parent
 AGENTS_DIR = REPO / "src" / "agents"
@@ -75,6 +80,9 @@ def kind_umgebung() -> dict:
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
     env["OLLAMA_MODEL"] = "qwen35-8k"
+    # Kennzeichen je Startweg (T-262): GUI-Kinder werden damit vom
+    # Waisenputzer des Hauses erkannt und in Ruhe gelassen.
+    env["MOONDEV_STARTWEG"] = "gui"
     # NICHT Ollamas eigenes /v1: bei Denk-Modellen landet das ganze Budget im
     # reasoning-Teil, content kommt leer zurueck (gemessen 25.09.2026: 0 Zeichen,
     # finish=length) und der Agent wertet das als Fehlschlag. Die Haus-Bruecke
@@ -849,6 +857,12 @@ class App:
                         p.kill()
                 except Exception:
                     pass
+                finally:
+                    # T-262: Eintrag erst nach dem echten Ende loeschen.
+                    # Wer vorher abmeldet, gibt den PID wieder frei, waehrend
+                    # der Prozess noch lebt - der Treiber koennte ihn dann
+                    # doch als Waise beenden.
+                    abmelde(p.pid)
 
             threading.Thread(target=_waiter, daemon=True).start()
             self._log(log_widget, f"■ {mod} wird beendet …")
@@ -861,6 +875,12 @@ class App:
             [str(VENV_PY), "-u", "-m", f"src.agents.{mod}"],
             cwd=str(REPO), env=env, stdout=open(logp, "ab"), stderr=subprocess.STDOUT,
         )
+        # T-262: Das Kind in den gemeinsamen Ordner eintragen. Ohne das
+        # beendet der Waisenputzer des Haus-Treibers jeden GUI-Agenten nach
+        # 300 s, weil er zu keinem Kind des Treibers gehoert. Registriert
+        # wird die PID des KINDES (nicht die der GUI) - der Aufruf nimmt
+        # darum das Argument. Der ganze Baum darunter wird mitgeschuetzt.
+        registriere(p.pid)
         self.threads[mod] = [p, logp]
         self._log(log_widget, f"▶ {mod} gestartet (PID {p.pid}) — Log: {logp}")
 

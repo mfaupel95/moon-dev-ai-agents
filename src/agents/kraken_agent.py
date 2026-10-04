@@ -24,6 +24,12 @@ from typing import Dict, List
 import requests
 from termcolor import cprint
 
+# Watchdog gegen haengende Netzaufrufe (T-260). Der Timer beendet den GANZEN
+# Prozess - ein Thread kann einen anderen nicht beenden; die Loesung in
+# TASKS.md (threading.Timer + raise) hat der Timer-Thread nur selbst
+# abgewuerfelt (gemessen 04.10.2026, der Hauptthread lief weiter).
+from src.agents.zyklus_watchdog import begrenze_zyklus
+
 # ---------------------------------------------------------------- Konfiguration
 
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL") or "qwen35-8k:latest"
@@ -35,6 +41,11 @@ MIN_VOLUMEN_EUR = 500_000   # Kleinstpaare (0,10-EUR-Kurse) ausfiltern: erst ab
                              # 500k EUR 24h-Umsatz gilt ein Paar als liquide
 MIN_KURS_EUR = 0.5            # Pennystocks unter 50 Cent bleiben aussen vor
 VERZOEGERUNG = 3600          # Sekunden zwischen zwei Zyklen
+# Zeitbudget eines Zyklus: ANZAHL_URTEILE LLM-Aufrufe x 120 s Timeout plus
+# die Kraken-Abrufe (ein Stapelabruf je 40 Paare, ~2 s). Daraus leitet der
+# Watchdog seine Grenze ab (Faktor 4) - nicht geraten.
+ZYKLUS_BUDGET_S = ANZAHL_URTEILE * 120 + 60
+ZYKLUS_GRENZE_S = ZYKLUS_BUDGET_S * 4      # = 2640 s (44 min)
 
 PROMPT = """Du bist ein Kraken-Analyst. Bewerte dieses EUR-Handelspaar an der Boerse Kraken.
 
@@ -202,9 +213,16 @@ def ein_zyklus():
 def main():
     print("🌙 Moon Dev KRAKEN Agent - Kraken angebunden (16.09.2026)")
     print("   Modell: %s  |  Boerse: Kraken EUR-Paare (oeffentlich, kein Key)" % OLLAMA_MODEL)
+    print("   Watchdog: %0.0f s je Zyklus (Budget %0.0f s x 4) - haengt der Zyklus,"
+          " bricht der Prozess ab und der Treiber startet neu (T-260)"
+          % (ZYKLUS_GRENZE_S, ZYKLUS_BUDGET_S))
     try:
         while True:
-            ein_zyklus()
+            # Ein haengender Netzaufruf laesst sich nicht abbrechen -
+            # timeout=120 in llm_lokal() greift bei eingefrorenem Ollama
+            # nicht. Der Watchdog beendet den Prozess; der Treiber startet neu.
+            with begrenze_zyklus("kraken", ZYKLUS_GRENZE_S):
+                ein_zyklus()
             for _ in range(12):
                 time.sleep(VERZOEGERUNG // 12)
     except KeyboardInterrupt:
