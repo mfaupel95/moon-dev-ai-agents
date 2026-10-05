@@ -15,6 +15,39 @@ geklickten "ORDER SENDEN"-Button (Fenster wird nicht minimiert). Private
 Schluessel werden nur gelesen, nie gespeichert oder angezeigt. Order-Limit
 hart auf 0.0002 BTC bei OKX, 0.001 XBT bei Kraken, 0.0005 BTC bei Binance.
 
+FARBEN UND SCHRIFT - bewusste Abweichung, keine vergessene (2026-10-05)
+--------------------------------------------------------------------------
+Dieses Fenster benutzt eine EIGENE Palette und erbt die Schrift des Systems.
+Beides ist Absicht, gemessen und nicht beiläufig entstanden:
+
+  * 44 Farbangaben, 17 verschiedene Werte, Schnittmenge mit der
+    Hauspalette (`Agenten/Werkzeuge/fenster_design.py`) = 0. Fenster #101418,
+    Datenfläche #141b28, Akzent #2f4a7a - eine eigene Palette mit eigenem
+    Namen im Kopf dieses Abschnitts.
+  * In keinem der acht `st.configure(...)`/`st.map(...)`-Aufrufe steht ein
+    `font=`. ttk erbt damit `TkDefaultFont` = Segoe UI (gemessen, 13 px).
+    Segoe UI ist proportional: die Breiten von '0iWM.' sind 9/4/16/15/4 px,
+    Consolas ist festbreit (8 px je Zeichen). Die fünf Zahlenspalten der
+    Börsentabelle fluchten deshalb nicht - das ist der Preis des Look,
+    und er ist hier gewollt.
+
+WARUM nicht die Hauspalette: dieses Fenster ist ein Werkzeug für Krypto-Bots
+mit sieben Tabs (Börsen, Wallet, Agenten, RBI-Swarm, LLM, PDFs, READMEs).
+Die drei Handelsfenster in `Agenten/Handel/` sind ein Monitor über 47 Spuren.
+Sie zu vermischen hieße, zwei Werkzeuge mit verschiedenen Aufgaben gleich
+aussehen zu lassen, ohne einen Grund zu haben.
+
+Die Messwerkzeuge, mit denen beides belegt wurde, liegen im Haus und nicht
+hier (ein Fremd-Klon führt keine Hauswerkzeuge):
+  - `Agenten/Handel/design_quellen_check.py` (Abstand aller vier Fenster)
+  - `Agenten/Handel/moongui_palette_check.py` (Palette, Stile, Schriftbreite)
+
+Was hier ausdrücklich NICHT gilt: `fenster_design.py` als Dateipfad zu
+laden und die Werte dieses Fensters darüber zu beziehen. Das Repo hat ein
+eigenes `upstream` (yolojewjitsu/moon-dev-ai-agents) und wird über
+`Agenten/Werkzeuge/repos-updaten.py` gepflegt - eine Haus-Bindung wäre beim
+nächsten Spulen eine Fremdänderung, die zerstört wird.
+
 Start:  .venv\\Scripts\\pythonw.exe moongui.py   (oder python moongui.py)
 """
 
