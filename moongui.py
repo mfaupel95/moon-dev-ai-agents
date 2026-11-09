@@ -848,6 +848,8 @@ class App:
             self.order_inst.set(inst)
 
     def _send_order(self):
+        import math
+
         ex = self.exchange_var.get()
         if not self.arm_var.get():
             self._log(self.boersen_log, "⚠ Abgebrochen: Checkbox 'Order wirklich senden' ist nicht aktiv.")
@@ -858,6 +860,9 @@ class App:
             qty = float(self.order_qty.get())
         except ValueError:
             self._log(self.boersen_log, "⚠ Menge ist keine Zahl.")
+            return
+        if not math.isfinite(qty):
+            self._log(self.boersen_log, "⚠ Menge muss eine endliche Zahl sein.")
             return
         limit = ORDER_LIMITS[ex]
         if ex == "OKX":
